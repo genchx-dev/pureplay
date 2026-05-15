@@ -1,0 +1,22 @@
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  rank?: number;
+  avatar?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password?: string;
+}
+
+export interface RegisterCredentials extends LoginCredentials {
+  email: string;
+}

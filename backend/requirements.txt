@@ -1,0 +1,9 @@
+django>=5.0
+djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
+python-dotenv
+psycopg2-binary
+channels[daphne]
+redis
+django-redis

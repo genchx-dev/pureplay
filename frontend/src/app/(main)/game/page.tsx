@@ -1,0 +1,141 @@
+import { useNavigate } from 'react-router-dom';
+import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
+import { useGameSocket } from '../../../hooks/useGameSocket';
+
+export const GamePage = () => {
+  const navigate = useNavigate();
+  // In a real scenario, matchId would come from URL or navigation state
+  const { board, timeLeft, status, sendMove } = useGameSocket('123');
+
+  const handleMove = (index: number) => {
+    if (board[index] === null && status === 'playing') {
+      sendMove(index);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
+      <div className="w-full max-w-lg flex flex-col p-4 min-h-screen">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-8 pt-4">
+          <button onClick={() => navigate('/')} className="p-2 hover:bg-zinc-800 rounded-full transition-colors">
+            <X className="text-zinc-500" />
+          </button>
+          <div className="flex flex-col items-center">
+            <h1 className="text-xl font-shrikhand text-primary tracking-widest uppercase">Tic Tac Toe</h1>
+            <div className="flex items-center gap-1 mt-1">
+              {status === 'playing' ? (
+                <div className="flex items-center gap-1 text-[10px] text-green-500 font-bold">
+                  <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                  <Wifi size={10} /> LIVE
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold">
+                  <WifiOff size={10} /> CONNECTING...
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="bg-card px-4 py-1.5 rounded-full border border-border flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${timeLeft < 10 ? 'bg-destructive animate-pulse' : 'bg-primary'}`} />
+            <span className="font-mono font-bold text-sm">{timeLeft}s</span>
+          </div>
+        </header>
+
+        {/* Players */}
+        <div className="flex justify-between items-center mb-10 px-2">
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-20 h-20 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-primary/10 flex items-center justify-center transition-all`}>
+              <User className="text-primary" size={40} />
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 1</span>
+              <span className="text-sm font-bold">YOU (X)</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="px-3 py-1 bg-primary/10 text-primary text-[10px] rounded-full font-black uppercase tracking-widest border border-primary/20">
+              VS
+            </div>
+            <div className="h-0.5 w-12 bg-gradient-to-r from-transparent via-border to-transparent" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-20 h-20 rounded-2xl bg-card border-2 border-border shadow-xl flex items-center justify-center transition-all`}>
+              <User className="text-zinc-600" size={40} />
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 2</span>
+              <span className="text-sm font-bold text-zinc-500">OPPONENT (O)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Board */}
+        <div className="bg-card p-4 rounded-[2.5rem] border border-border shadow-2xl mb-10">
+          <div className="grid grid-cols-3 gap-3 aspect-square">
+            {board.map((cell, idx) => (
+              <button 
+                key={idx}
+                disabled={cell !== null}
+                onClick={() => handleMove(idx)}
+                className="group relative bg-background rounded-2xl border-2 border-border flex items-center justify-center transition-all hover:border-primary/50 active:scale-95 disabled:cursor-default"
+              >
+                {cell === 'X' && (
+                  <div className="animate-in zoom-in duration-300">
+                    <X className="text-primary" size={48} strokeWidth={3} />
+                  </div>
+                )}
+                {cell === 'O' && (
+                  <div className="animate-in zoom-in duration-300">
+                    <Circle className="text-foreground" size={40} strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats/Score */}
+        <div className="grid grid-cols-3 gap-4 mb-10">
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Wins</div>
+            <div className="text-xl font-black text-primary">2</div>
+          </div>
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Draws</div>
+            <div className="text-xl font-black">0</div>
+          </div>
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Wins</div>
+            <div className="text-xl font-black text-zinc-500">1</div>
+          </div>
+        </div>
+
+        {/* Footer Game Suggestion */}
+        <div className="mt-auto pb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={16} className="text-primary" />
+            <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Play More & Win Big</h2>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {[
+              { icon: <Dice5 />, label: 'Dice' },
+              { icon: <Sparkles />, label: 'Spin' },
+              { icon: <Zap />, label: 'Cards' },
+              { icon: <Target />, label: 'Darts' }
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 min-w-[70px]">
+                <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center text-zinc-600 border border-border hover:border-primary/30 hover:text-primary transition-all cursor-not-allowed">
+                  {item.icon}
+                </div>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
