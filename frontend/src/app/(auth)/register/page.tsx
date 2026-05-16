@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 
 export const RegisterPage = () => {
@@ -41,7 +41,28 @@ export const RegisterPage = () => {
       navigate('/');
     } catch (err: any) {
       console.error('Registration failed', err);
-      setError(err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.');
+      const errorData = err.response?.data;
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (errorData) {
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else {
+          // Handle DRF field errors (e.g., { "email": ["..."] })
+          const firstKey = Object.keys(errorData)[0];
+          if (firstKey && Array.isArray(errorData[firstKey])) {
+            errorMessage = `${firstKey}: ${errorData[firstKey][0]}`;
+          } else if (firstKey && typeof errorData[firstKey] === 'string') {
+            errorMessage = errorData[firstKey];
+          }
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -149,14 +170,19 @@ export const RegisterPage = () => {
           
           <button 
             disabled={isLoading}
-            className="w-full py-4 bg-primary text-black font-black rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-primary/10 mt-4 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+            className="w-full py-4.5 bg-primary text-black font-black rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-primary/10 mt-4 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
                 <span>Creating Arena...</span>
               </div>
-            ) : 'Create Account'}
+            ) : (
+              <>
+                <UserPlus size={18} strokeWidth={3} />
+                <span>Create Account</span>
+              </>
+            )}
           </button>
           
           <p className="text-center text-sm text-zinc-500 mt-6 font-medium">

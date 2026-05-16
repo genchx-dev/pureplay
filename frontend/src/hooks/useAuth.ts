@@ -7,13 +7,13 @@ export const useAuth = () => {
 
   const login = async (credentials: LoginCredentials) => {
     const { data } = await authApi.login(credentials);
-    setAuth(data.user, data.token);
+    setAuth(data.user, data.token, data.refresh);
     return data;
   };
 
   const register = async (credentials: RegisterCredentials) => {
     const { data } = await authApi.register(credentials);
-    setAuth(data.user, data.token);
+    setAuth(data.user, data.token, data.refresh);
     return data;
   };
 

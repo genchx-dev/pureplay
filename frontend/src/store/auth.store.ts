@@ -5,8 +5,9 @@ import { User } from '../types/auth.types';
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
   setUser: (user: User) => void;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -15,15 +16,18 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: localStorage.getItem('token'),
+  refreshToken: localStorage.getItem('refreshToken'),
   isAuthenticated: !!localStorage.getItem('token'),
-  setAuth: (user, token) => {
+  setAuth: (user, token, refreshToken) => {
     localStorage.setItem('token', token);
-    set({ user, token, isAuthenticated: true });
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true });
   },
   setUser: (user) => set({ user }),
   logout: () => {
     localStorage.removeItem('token');
-    set({ user: null, token: null, isAuthenticated: false });
+    localStorage.removeItem('refreshToken');
+    set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
   },
   checkAuth: async () => {
     const token = get().token;

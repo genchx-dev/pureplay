@@ -10,6 +10,7 @@ export interface User {
 export interface AuthResponse {
   user: User;
   token: string;
+  refresh?: string;
 }
 
 export interface LoginCredentials {
