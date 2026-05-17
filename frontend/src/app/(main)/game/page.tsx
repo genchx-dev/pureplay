@@ -2,6 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 
+// Import game assets
+import tictactoeLogo from '../../../assets/games/tictactoe.svg';
+
 export const GamePage = () => {
   const navigate = useNavigate();
   // In a real scenario, matchId would come from URL or navigation state
@@ -22,7 +25,10 @@ export const GamePage = () => {
             <X className="text-zinc-500" />
           </button>
           <div className="flex flex-col items-center">
-            <h1 className="text-xl font-shrikhand text-primary tracking-widest uppercase">Tic Tac Toe</h1>
+            <div className="flex items-center gap-2">
+              <img src={tictactoeLogo} alt="Logo" className="w-6 h-6" />
+              <h1 className="text-xl font-shrikhand text-primary tracking-widest uppercase">Tic Tac Toe</h1>
+            </div>
             <div className="flex items-center gap-1 mt-1">
               {status === 'playing' ? (
                 <div className="flex items-center gap-1 text-[10px] text-green-500 font-bold">

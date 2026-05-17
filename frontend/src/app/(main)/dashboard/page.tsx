@@ -25,6 +25,9 @@ import { LeaderboardPage } from './LeaderboardPage';
 import { MePage } from '../settings/page';
 import { WalletPage } from '../wallet/page';
 
+// Import game assets
+import tictactoeLogo from '../../../assets/games/tictactoe.svg';
+
 const HomeContent = () => {
   const prizes = [
     { rank: '1ST PLACE', prize: 25000, color: 'text-primary', bg: 'bg-primary/10' },
@@ -46,14 +49,14 @@ const HomeContent = () => {
       />
 
       <GameSection title="Your Favorites" icon={Heart} iconColor="text-red-500">
-        <GameCard />
+        <GameCard image={tictactoeLogo} label="Tic Tac Toe" />
         <div className="w-20 h-20 bg-zinc-900/50 rounded-lg border border-zinc-800 border-dashed flex items-center justify-center opacity-40">
            <span className="text-[10px] text-center font-bold text-zinc-600 uppercase">Add More</span>
         </div>
       </GameSection>
 
       <GameSection title="Hot Games" icon={Trophy}>
-        <GameCard />
+        <GameCard image={tictactoeLogo} label="Tic Tac Toe" />
         {[1,2,3].map(i => (
           <GameCard key={i} disabled label="COMING SOON" />
         ))}
