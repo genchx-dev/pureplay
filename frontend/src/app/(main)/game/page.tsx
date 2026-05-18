@@ -7,7 +7,7 @@ import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
 export const GamePage = () => {
   const navigate = useNavigate();
   const { matchId } = useParams<{ matchId: string }>();
-  const { board, timeLeft, status, currentPlayer, playerSymbol, winner, error, sendMove } = useGameSocket(matchId);
+  const { board, timeLeft, status, currentPlayer, playerSymbol, winner, error, sendMove, reconnect } = useGameSocket(matchId);
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
 
   const handleMove = (index: number) => {
@@ -54,6 +54,14 @@ export const GamePage = () => {
             error ? 'border-red-500/40 bg-red-500/10 text-red-300' : 'border-primary/30 bg-primary/10 text-primary'
           }`}>
             {error || (winner === 'draw' ? 'Match ended in a draw' : `${winner || 'Winner'} wins the match`)}
+            {error && (
+              <button
+                onClick={reconnect}
+                className="mt-3 block w-full rounded-xl bg-red-500/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-100 transition-colors hover:bg-red-500/30"
+              >
+                Reconnect
+              </button>
+            )}
           </div>
         )}
 

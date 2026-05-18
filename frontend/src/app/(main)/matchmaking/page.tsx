@@ -41,6 +41,11 @@ export const MatchmakingPage = () => {
     }
   };
 
+  const cancelQueue = () => {
+    setStatus('idle');
+    setMessage('Queue cancelled. Choose your stake and enter again.');
+  };
+
   const isSearching = status === 'searching' || status === 'waiting';
   const stakeOptions = [100, 500, 1000];
 
@@ -94,6 +99,15 @@ export const MatchmakingPage = () => {
       >
         {isSearching ? 'In Queue' : 'Find Match'}
       </button>
+
+      {isSearching && (
+        <button
+          onClick={cancelQueue}
+          className="mt-3 min-w-56 rounded-2xl border border-zinc-800 px-8 py-3 font-black text-zinc-400 transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          Cancel Search
+        </button>
+      )}
 
       {isSearching && (
         <div className="mt-12 flex gap-2">

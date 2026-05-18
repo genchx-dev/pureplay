@@ -33,6 +33,12 @@ export const useGameSocket = (matchId?: string) => {
     return () => window.clearInterval(timer);
   }, [decrementTimer, status]);
 
+  const reconnect = () => {
+    if (matchId) {
+      connectWebSocket(matchId);
+    }
+  };
+
   return {
     board,
     timeLeft,
@@ -42,5 +48,6 @@ export const useGameSocket = (matchId?: string) => {
     winner,
     error,
     sendMove,
+    reconnect,
   };
 };
