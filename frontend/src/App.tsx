@@ -43,10 +43,13 @@ export function App() {
                 <MatchmakingPage />
             </ProtectedRoute>
         } />
-        <Route path="/game" element={
-          <Suspense fallback={<div className="text-primary p-8">Loading Game...</div>}>
-            <GamePage />
-          </Suspense>
+        <Route path="/game" element={<Navigate to="/matchmaking" />} />
+        <Route path="/game/:matchId" element={
+          <ProtectedRoute>
+            <Suspense fallback={<div className="text-primary p-8">Loading Game...</div>}>
+              <GamePage />
+            </Suspense>
+          </ProtectedRoute>
         } />
         <Route path="/" element={<HomePage />} />
         {/* Fallback for unknown routes */}

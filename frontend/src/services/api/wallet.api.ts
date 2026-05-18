@@ -1,5 +1,5 @@
 import api from './client';
-import type { WalletBalance, Transaction } from '../../types/wallet.types';
+import type { BankDetails, WalletBalance, Transaction } from '../../types/wallet.types';
 
 export const walletApi = {
   getBalance: () => 
@@ -9,8 +9,8 @@ export const walletApi = {
     api.get<Transaction[]>('/wallet/transactions/'),
     
   deposit: (amount: number) => 
-    api.post('/wallet/deposit/', { amount }),
+    api.post<{ balance: number; transactionId: string }>('/wallet/deposit/', { amount }),
     
-  withdraw: (amount: number, bankDetails: any) => 
-    api.post('/wallet/withdraw/', { amount, bankDetails }),
+  withdraw: (amount: number, bankDetails: BankDetails) => 
+    api.post<{ balance: number; transactionId: string }>('/wallet/withdraw/', { amount, bankDetails }),
 };

@@ -1,25 +1,26 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 
-// Import game assets
 import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
 
 export const GamePage = () => {
   const navigate = useNavigate();
-  // In a real scenario, matchId would come from URL or navigation state
-  const { board, timeLeft, status, sendMove } = useGameSocket('123');
+  const { matchId } = useParams<{ matchId: string }>();
+  const { board, timeLeft, status, currentPlayer, playerSymbol, winner, error, sendMove } = useGameSocket(matchId);
+  const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
 
   const handleMove = (index: number) => {
-    if (board[index] === null && status === 'playing') {
+    if (board[index] === null && isMyTurn) {
       sendMove(index);
     }
   };
 
+  const statusLabel = status === 'playing' ? 'LIVE' : status === 'finished' || status === 'draw' ? 'GAME OVER' : 'CONNECTING...';
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
       <div className="w-full max-w-lg flex flex-col p-4 min-h-screen">
-        {/* Header */}
         <header className="flex justify-between items-center mb-8 pt-4">
           <button onClick={() => navigate('/')} className="p-2 hover:bg-zinc-800 rounded-full transition-colors">
             <X className="text-zinc-500" />
@@ -33,30 +34,37 @@ export const GamePage = () => {
               {status === 'playing' ? (
                 <div className="flex items-center gap-1 text-[10px] text-green-500 font-bold">
                   <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                  <Wifi size={10} /> LIVE
+                  <Wifi size={10} /> {statusLabel}
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold">
-                  <WifiOff size={10} /> CONNECTING...
+                  <WifiOff size={10} /> {statusLabel}
                 </div>
               )}
             </div>
           </div>
           <div className="bg-card px-4 py-1.5 rounded-full border border-border flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${timeLeft < 10 ? 'bg-destructive animate-pulse' : 'bg-primary'}`} />
+            <div className={`w-2 h-2 rounded-full ${timeLeft < 5 ? 'bg-destructive animate-pulse' : 'bg-primary'}`} />
             <span className="font-mono font-bold text-sm">{timeLeft}s</span>
           </div>
         </header>
 
-        {/* Players */}
-        <div className="flex justify-between items-center mb-10 px-2">
+        {(error || status === 'finished' || status === 'draw') && (
+          <div className={`mb-6 rounded-2xl border p-4 text-center text-sm font-bold ${
+            error ? 'border-red-500/40 bg-red-500/10 text-red-300' : 'border-primary/30 bg-primary/10 text-primary'
+          }`}>
+            {error || (winner === 'draw' ? 'Match ended in a draw' : `${winner || 'Winner'} wins the match`)}
+          </div>
+        )}
+
+        <div className="flex justify-between items-center mb-8 px-2">
           <div className="flex flex-col items-center gap-2">
-            <div className={`w-20 h-20 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-primary/10 flex items-center justify-center transition-all`}>
+            <div className={`w-20 h-20 rounded-2xl bg-card border-2 ${isMyTurn ? 'border-primary shadow-primary/10' : 'border-border'} shadow-xl flex items-center justify-center transition-all`}>
               <User className="text-primary" size={40} />
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 1</span>
-              <span className="text-sm font-bold">YOU (X)</span>
+              <span className="text-sm font-bold">YOU ({playerSymbol || '...'})</span>
             </div>
           </div>
 
@@ -68,23 +76,26 @@ export const GamePage = () => {
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            <div className={`w-20 h-20 rounded-2xl bg-card border-2 border-border shadow-xl flex items-center justify-center transition-all`}>
+            <div className={`w-20 h-20 rounded-2xl bg-card border-2 ${!isMyTurn && status === 'playing' ? 'border-primary/60' : 'border-border'} shadow-xl flex items-center justify-center transition-all`}>
               <User className="text-zinc-600" size={40} />
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 2</span>
-              <span className="text-sm font-bold text-zinc-500">OPPONENT (O)</span>
+              <span className="text-sm font-bold text-zinc-500">OPPONENT</span>
             </div>
           </div>
         </div>
 
-        {/* Board */}
+        <div className="mb-4 text-center text-xs font-black uppercase tracking-widest text-zinc-500">
+          {status === 'playing' ? (isMyTurn ? 'Your Turn' : `${currentPlayer}'s Turn`) : 'Waiting for match state'}
+        </div>
+
         <div className="bg-card p-4 rounded-[2.5rem] border border-border shadow-2xl mb-10">
           <div className="grid grid-cols-3 gap-3 aspect-square">
             {board.map((cell, idx) => (
-              <button 
+              <button
                 key={idx}
-                disabled={cell !== null}
+                disabled={cell !== null || !isMyTurn}
                 onClick={() => handleMove(idx)}
                 className="group relative bg-background rounded-2xl border-2 border-border flex items-center justify-center transition-all hover:border-primary/50 active:scale-95 disabled:cursor-default"
               >
@@ -103,23 +114,21 @@ export const GamePage = () => {
           </div>
         </div>
 
-        {/* Stats/Score */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Wins</div>
-            <div className="text-xl font-black text-primary">2</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">You</div>
+            <div className="text-xl font-black text-primary">{playerSymbol || '-'}</div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Draws</div>
-            <div className="text-xl font-black">0</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Turn</div>
+            <div className="text-xl font-black">{currentPlayer}</div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Wins</div>
-            <div className="text-xl font-black text-zinc-500">1</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Match</div>
+            <div className="text-xl font-black text-zinc-500">{matchId ? matchId.slice(0, 4) : '-'}</div>
           </div>
         </div>
 
-        {/* Footer Game Suggestion */}
         <div className="mt-auto pb-6">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={16} className="text-primary" />
