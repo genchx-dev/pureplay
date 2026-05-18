@@ -1,9 +1,22 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
+import { X, User, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 
 import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
+import basketballLogo from '../../../assets/games/basketball.svg';
+import snookerLogo from '../../../assets/games/snooker.svg';
+import reversiLogo from '../../../assets/games/reversi.svg';
+import archeryLogo from '../../../assets/games/archery.svg';
+import chessLogo from '../../../assets/games/chess.svg';
+
+const comingSoonGames = [
+  { image: basketballLogo, label: 'Basketball' },
+  { image: snookerLogo, label: 'Snooker' },
+  { image: reversiLogo, label: 'Reversi' },
+  { image: archeryLogo, label: 'Archery' },
+  { image: chessLogo, label: 'Chess' },
+];
 
 export const GamePage = () => {
   const navigate = useNavigate();
@@ -157,18 +170,13 @@ export const GamePage = () => {
         <div className="mt-auto pb-6">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={16} className="text-primary" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Play More & Win Big</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Coming Soon</h2>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {[
-              { icon: <Dice5 />, label: 'Dice' },
-              { icon: <Sparkles />, label: 'Spin' },
-              { icon: <Zap />, label: 'Cards' },
-              { icon: <Target />, label: 'Darts' }
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center gap-2 min-w-[70px]">
-                <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center text-zinc-600 border border-border hover:border-primary/30 hover:text-primary transition-all cursor-not-allowed">
-                  {item.icon}
+            {comingSoonGames.map((item) => (
+              <div key={item.label} className="flex flex-col items-center gap-2 min-w-[70px]">
+                <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center border border-border overflow-hidden cursor-not-allowed opacity-70">
+                  <img src={item.image} alt={item.label} className="h-full w-full object-cover" />
                 </div>
                 <span className="text-[10px] font-bold text-zinc-500 uppercase">{item.label}</span>
               </div>
