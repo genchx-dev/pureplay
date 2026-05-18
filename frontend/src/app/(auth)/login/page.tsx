@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
+import { useAuthStore } from '../../../store/auth.store';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -12,6 +13,7 @@ export const LoginPage = () => {
   
   const navigate = useNavigate();
   const { login } = useAuth();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +29,17 @@ export const LoginPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    setAuth({
+      id: 'demo-user',
+      username: 'DemoPlayer',
+      email: 'demo@pureplay.local',
+      tier: 'Bronze',
+      rank: 1000,
+    }, 'demo-token');
+    navigate('/game/demo?demo=1');
   };
 
   return (
@@ -105,6 +118,14 @@ export const LoginPage = () => {
                 <span>Enter Arena</span>
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            className="w-full py-4 bg-zinc-900 text-primary font-black rounded-2xl border border-primary/30 hover:bg-primary/10 active:scale-[0.98] transition-all uppercase tracking-widest text-sm"
+          >
+            Use Demo Account
           </button>
           
           <p className="text-center text-sm text-zinc-500 mt-6 font-medium">
