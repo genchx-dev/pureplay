@@ -27,6 +27,8 @@ import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
 import basketballLogo from '../../../assets/games/basketball.svg';
 import snookerLogo from '../../../assets/games/snooker.svg';
 import reversiLogo from '../../../assets/games/reversi.svg';
+import archeryLogo from '../../../assets/games/archery.svg';
+import chessLogo from '../../../assets/games/chess.svg';
 
 const HomeContent = () => {
   const prizes = [
@@ -58,6 +60,8 @@ const HomeContent = () => {
         <GameCard image={basketballLogo} disabled label="Basketball" />
         <GameCard image={snookerLogo} disabled label="Snooker" />
         <GameCard image={reversiLogo} disabled label="Reversi" />
+        <GameCard image={archeryLogo} disabled label="Archery" />
+        <GameCard image={chessLogo} disabled label="Chess" />
       </GameSection>
     </div>
   );
