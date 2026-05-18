@@ -1,13 +1,18 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
+import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 
 import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
 
 export const GamePage = () => {
   const navigate = useNavigate();
   const { matchId } = useParams<{ matchId: string }>();
-  const { board, timeLeft, status, currentPlayer, playerSymbol, winner, error, sendMove, reconnect } = useGameSocket(matchId);
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === '1';
+  const liveGame = useGameSocket(isDemoMode ? undefined : matchId);
+  const demoGame = useTicTacToeDemo();
+  const { board, timeLeft, status, currentPlayer, playerSymbol, winner, error, sendMove, reconnect } = isDemoMode ? demoGame : liveGame;
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
 
   const handleMove = (index: number) => {
@@ -62,6 +67,18 @@ export const GamePage = () => {
                 Reconnect
               </button>
             )}
+          </div>
+        )}
+
+        {isDemoMode && (
+          <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center text-xs font-black uppercase tracking-widest text-primary">
+            Demo Mode
+            <button
+              onClick={reconnect}
+              className="mt-3 block w-full rounded-xl bg-primary px-4 py-2 text-xs font-black text-black transition-transform hover:scale-[1.01]"
+            >
+              Reset Board
+            </button>
           </div>
         )}
 

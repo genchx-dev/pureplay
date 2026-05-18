@@ -51,7 +51,7 @@ const HomeContent = () => {
       </div>
 
       <GameSection title="Hot Game">
-        <GameCard image={tictactoeLogo} label="Tic Tac Toe" />
+        <GameCard image={tictactoeLogo} label="Tic Tac Toe" to="/game/demo?demo=1" />
       </GameSection>
 
       <GameSection title="Coming Soon">
