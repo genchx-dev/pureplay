@@ -3,7 +3,7 @@ import { X, User, Dice5, Zap, Sparkles, Target, Circle, Trophy, Wifi, WifiOff } 
 import { useGameSocket } from '../../../hooks/useGameSocket';
 
 // Import game assets
-import tictactoeLogo from '../../../assets/games/tictactoe.svg';
+import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
 
 export const GamePage = () => {
   const navigate = useNavigate();

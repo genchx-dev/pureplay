@@ -94,6 +94,7 @@ export const RegisterPage = () => {
               <input
                 type="text"
                 required
+                autoFocus
                 placeholder="Pick a unique name"
                 className="w-full p-4 pl-12 rounded-2xl bg-background border border-border text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-zinc-700 font-medium"
                 onChange={(e) => setUsername(e.target.value)}
@@ -169,6 +170,7 @@ export const RegisterPage = () => {
           </div>
           
           <button 
+            type="submit"
             disabled={isLoading}
             className="w-full py-4.5 bg-primary text-black font-black rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-primary/10 mt-4 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-sm flex items-center justify-center gap-2"
           >

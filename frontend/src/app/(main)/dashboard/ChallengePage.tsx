@@ -55,6 +55,38 @@ export const ChallengePage = () => {
           ))}
         </div>
       </section>
+
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-5 bg-zinc-500 rounded-full" />
+          <h2 className="text-lg font-semibold">Available Challenges</h2>
+          <span className="ml-auto bg-zinc-800 text-zinc-300 text-xs font-bold px-2 py-1 rounded-full">
+            {availableChallenges.length}
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {availableChallenges.map((challenge) => (
+            <div key={challenge.id} className="bg-card rounded-xl p-4 border border-zinc-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-700">
+                    <Swords size={20} className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">{challenge.player}</div>
+                    <div className="text-xs text-zinc-400">{challenge.game}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-primary font-bold">₦{challenge.stake}</div>
+                  <button className="px-4 py-1.5 bg-primary text-black font-semibold rounded-lg text-sm">Accept</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

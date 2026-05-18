@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Award } from 'lucide-react';
+import { Trophy, TrendingUp } from 'lucide-react';
 
 export const LeaderboardPage = () => {
   const topPlayers = [

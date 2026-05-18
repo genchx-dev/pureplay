@@ -4,9 +4,7 @@ import {
   Swords, 
   Trophy, 
   TrendingUp, 
-  User, 
-  Heart,
-  Wallet
+  User
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -23,10 +21,12 @@ import { ChallengePage } from './ChallengePage';
 import { TournamentPage } from '../tournaments/page';
 import { LeaderboardPage } from './LeaderboardPage';
 import { MePage } from '../settings/page';
-import { WalletPage } from '../wallet/page';
 
 // Import game assets
-import tictactoeLogo from '../../../assets/games/tictactoe.svg';
+import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
+import basketballLogo from '../../../assets/games/basketball.svg';
+import snookerLogo from '../../../assets/games/snooker.svg';
+import reversiLogo from '../../../assets/games/reversi.svg';
 
 const HomeContent = () => {
   const prizes = [
@@ -36,30 +36,28 @@ const HomeContent = () => {
   ];
 
   return (
-    <div className="px-6 py-6 space-y-10 max-w-6xl mx-auto pb-20">
-      <TournamentHero 
-        title="ULTIMATE TIC-TAC-TOE"
-        description="Join the ranks of elite players and win massive prizes."
-        startsIn="02:45:30"
-        entryFee={500}
-        joinedUsers={128}
-        totalPrize={50000}
-        prizes={prizes}
-        onEnter={() => console.log('Entering Arena')}
-      />
+    <div className="px-6 pb-24 space-y-6">
+      <div className="pt-6">
+        <TournamentHero 
+          title="ULTIMATE TIC-TAC-TOE"
+          description="Join the ranks of elite players and win massive prizes."
+          startsIn="02:45:30"
+          entryFee={500}
+          joinedUsers={128}
+          totalPrize={50000}
+          prizes={prizes}
+          onEnter={() => console.log('Entering Arena')}
+        />
+      </div>
 
-      <GameSection title="Your Favorites" icon={Heart} iconColor="text-red-500">
+      <GameSection title="Hot Game">
         <GameCard image={tictactoeLogo} label="Tic Tac Toe" />
-        <div className="w-20 h-20 bg-zinc-900/50 rounded-lg border border-zinc-800 border-dashed flex items-center justify-center opacity-40">
-           <span className="text-[10px] text-center font-bold text-zinc-600 uppercase">Add More</span>
-        </div>
       </GameSection>
 
-      <GameSection title="Hot Games" icon={Trophy}>
-        <GameCard image={tictactoeLogo} label="Tic Tac Toe" />
-        {[1,2,3].map(i => (
-          <GameCard key={i} disabled label="COMING SOON" />
-        ))}
+      <GameSection title="Coming Soon">
+        <GameCard image={basketballLogo} disabled label="Basketball" />
+        <GameCard image={snookerLogo} disabled label="Snooker" />
+        <GameCard image={reversiLogo} disabled label="Reversi" />
       </GameSection>
     </div>
   );
@@ -71,29 +69,27 @@ export const HomePage = () => {
   const { isAuthenticated } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
 
+  const navItems = [
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'challenge', icon: Swords, label: 'Challenge' },
+    { id: 'tournament', icon: Trophy, label: 'Tournament' },
+    { id: 'leaderboard', icon: TrendingUp, label: 'Leaderboard' },
+    { id: 'me', icon: User, label: 'Me' },
+  ];
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return <HomeContent />;
       case 'challenge': return <ChallengePage />;
       case 'tournament': return <TournamentPage />;
-      case 'wallet': return <WalletPage />;
       case 'leaderboard': return <LeaderboardPage />;
       case 'me': return <MePage />;
       default: return <HomeContent />;
     }
   };
 
-  const navItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'challenge', icon: Swords, label: 'Challenge' },
-    { id: 'tournament', icon: Trophy, label: 'Tournament' },
-    { id: 'wallet', icon: Wallet, label: 'Wallet' },
-    { id: 'leaderboard', icon: TrendingUp, label: 'Leaderboard' },
-    { id: 'me', icon: User, label: 'Me' },
-  ];
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-black text-foreground flex flex-col md:flex-row relative overflow-hidden font-sans">
       <Sidebar 
         navItems={navItems}
         activeTab={activeTab}
@@ -105,17 +101,19 @@ export const HomePage = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen relative bg-black">
         <Header isAuthenticated={isAuthenticated} balance={balance} />
 
         {/* Dynamic Content */}
-        <main className="flex-1 overflow-y-auto w-full">
-          {renderContent()}
+        <main className="flex-1 overflow-y-auto w-full scrollbar-hide pb-24 md:pb-6">
+          <div className="max-w-6xl mx-auto w-full">
+            {renderContent()}
+          </div>
         </main>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden sticky bottom-0 bg-black/95 backdrop-blur-lg border-t border-zinc-800 z-40">
-          <div className="flex items-center justify-around px-6 py-3">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-lg border-t border-zinc-800 z-40">
+          <div className="flex items-center justify-around px-4 py-3">
             {navItems.map((item) => (
               <button
                 key={item.id}

@@ -1,4 +1,4 @@
-import { Trophy, Users, Clock, Calendar } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 export const TournamentPage = () => {
   const tournaments = [
