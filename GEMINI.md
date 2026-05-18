@@ -50,9 +50,13 @@ The project is architected for **scalability and domain-driven design**.
 **Your current objectives:**
 1.  **Backend Core:** Activate the virtual environment and ensure `Django` + `Channels` are running.
 2.  **Wallet Domain:** The `apps/wallet` model is created but needs logic for staking/escrow.
-3.  **Real-Time Bridge:** The frontend is already emitting/listening for WebSocket events (see `frontend/src/services/websocket/`). 
-4.  **Game Logic (10s Turn Limit):** You MUST implement server-side turn management. If a player fails to move within 10 seconds, the server must automatically trigger a `TURN_SKIP` and pass control to the other player.
-5.  **Security:** Ensure the JWT passed in the WS query params is correctly validated in `core/security/jwt.py`.
+3.  **Matchmaking Modes:** The frontend now exposes three Tic Tac Toe paths:
+    - `Practice Bot`: frontend-only demo mode, no backend work required for MVP.
+    - `Quick Match`: requires `POST /api/matchmaking/queue/` with `{ gameType, stake, mode: "quick_match" }`.
+    - `Challenge Player`: requires `GET /api/matchmaking/available-players/?gameType=tictactoe&stake=...` and `POST /api/matchmaking/challenge/` with `{ gameType, stake, opponentId }`.
+4.  **Real-Time Bridge:** The frontend is already emitting/listening for WebSocket events (see `frontend/src/services/websocket/`). 
+5.  **Game Logic (10s Turn Limit):** You MUST implement server-side turn management. If a player fails to move within 10 seconds, the server must automatically trigger a `TURN_SKIP` and pass control to the other player.
+6.  **Security:** Ensure the JWT passed in the WS query params is correctly validated in `core/security/jwt.py`.
 
 ### ⚡ Optimization & Network Performance
 - **Zustand Store:** Already optimized as an Atomic Store (Zustand is ~1KB).
@@ -81,7 +85,11 @@ python -m venv venv; .\venv\Scripts\activate; pip install -r requirements.txt; p
 ## Integration Guide for Backend Partner
 - **API Base:** Use `VITE_API_URL` (default: `http://localhost:8000/api`)
 - **WS Base:** Use `VITE_WS_URL` (default: `ws://localhost:8000/ws`)
+- **Frontend Matchmaking Modes:**
+  - `Practice Bot` routes to `/game/demo?demo=1` and is frontend-only.
+  - `Quick Match` calls `POST /api/matchmaking/queue/`.
+  - `Challenge Player` calls `GET /api/matchmaking/available-players/` and `POST /api/matchmaking/challenge/`.
 - **WebSocket Auth:** Token passed as query param `?token=...`
-- **WS Events:** `MATCH_START`, `MOVE_MADE`, `GAME_OVER`, `ERROR`
+- **WS Events:** `MATCH_START`, `MOVE_MADE`, `TURN_SKIP`, `GAME_OVER`, `ERROR`
 - **Event Bus:** Implementation of `dispatcher.py` for cross-app communication.
 

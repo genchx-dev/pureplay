@@ -194,7 +194,13 @@ Response:
 
 ## Matchmaking REST API
 
-Recommended endpoint for frontend integration:
+The Tic Tac Toe entry flow now has three frontend modes:
+
+- `Practice Bot`: frontend-only demo mode, no backend endpoint required for MVP.
+- `Quick Match`: queue for any available player.
+- `Challenge Player`: load online players and send a direct challenge.
+
+### Quick Match
 
 `POST /api/matchmaking/queue/`
 
@@ -203,7 +209,8 @@ Request:
 ```json
 {
   "gameType": "tictactoe",
-  "stake": 500
+  "stake": 500,
+  "mode": "quick_match"
 }
 ```
 
@@ -216,6 +223,57 @@ Response when waiting:
 ```
 
 Response when matched:
+
+```json
+{
+  "status": "matched",
+  "matchId": "match_123"
+}
+```
+
+### Available Players
+
+`GET /api/matchmaking/available-players/?gameType=tictactoe&stake=500`
+
+Response:
+
+```json
+[
+  {
+    "id": "user_123",
+    "username": "ShadowMaster",
+    "tier": "Gold",
+    "rank": 1240,
+    "preferredStake": 500,
+    "status": "online"
+  }
+]
+```
+
+### Challenge Player
+
+`POST /api/matchmaking/challenge/`
+
+Request:
+
+```json
+{
+  "gameType": "tictactoe",
+  "stake": 500,
+  "opponentId": "user_123"
+}
+```
+
+Response when pending:
+
+```json
+{
+  "status": "pending",
+  "challengeId": "challenge_123"
+}
+```
+
+Response when immediately matched:
 
 ```json
 {
@@ -336,3 +394,6 @@ For a draw:
 - On timeout, emit `TURN_SKIP` and pass the turn to the other player.
 - Do not reset the board on reconnect.
 - Keep payloads small and stable.
+- Support `Quick Match` with `POST /matchmaking/queue/`.
+- Support `Challenge Player` with `GET /matchmaking/available-players/` and `POST /matchmaking/challenge/`.
+- `Practice Bot` is frontend-only for now and does not require backend work for MVP.
