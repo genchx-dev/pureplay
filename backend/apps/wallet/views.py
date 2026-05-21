@@ -1,17 +1,11 @@
-from rest_framework import views, response, permissions
-from .models import Wallet
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
-class WalletBalanceView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+@api_view(['GET'])
+def get_balance(request):
+    # Return dummy data without requiring auth (for MVP testing)
+    return Response({'balance': 1000, 'currency': 'PP'})
 
-    def get(self, request):
-        wallet, created = Wallet.objects.get_or_create(user=request.user)
-        return response.Response({
-            'balance': float(wallet.balance)
-        })
-
-class TransactionHistoryView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        return response.Response([])
+@api_view(['GET'])
+def get_transactions(request):
+    return Response([])

@@ -2,6 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Placeholder for matchmaking logic
-    # path('queue/', views.JoinQueueView.as_view(), name='join-queue'),
+    path('queue/', views.join_queue_view),
+    path('available-players/', views.available_players_view),
 ]

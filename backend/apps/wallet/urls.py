@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import WalletBalanceView, TransactionHistoryView
+from . import views
 
 urlpatterns = [
-    path('balance/', WalletBalanceView.as_view(), name='wallet-balance'),
-    path('transactions/', TransactionHistoryView.as_view(), name='wallet-transactions'),
+    path('balance/', views.get_balance),
+    path('transactions/', views.get_transactions),
 ]

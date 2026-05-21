@@ -1,9 +1,6 @@
-django>=5.0
-djangorestframework
-django-cors-headers
-djangorestframework-simplejwt
-python-dotenv
-psycopg2-binary
-channels[daphne]
-redis
-django-redis
+Django==5.0.3
+djangorestframework==3.14.0
+channels==4.0.0
+channels-redis==4.2.0
+redis==5.0.1
+python-dotenv==1.0.1
