@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from apps.wallet.services import WalletService
+
 TURN_SECONDS = 10
+PLATFORM_FEE_PERCENT = 5
+
 WIN_LINES = (
     (0, 1, 2),
     (3, 4, 5),
@@ -32,18 +37,26 @@ def create_match(player1_id, game_type='tictactoe', stake=0):
     Match = get_match_model()
     User = get_user_model()
     player1 = User.objects.get(id=player1_id)
-    match = Match.objects.create(
-        player1=player1,
-        status='waiting',
-        game_state={
-            'board': [None] * 9,
-            'currentPlayer': 'X',
-            'players': {'X': player1.id},
-            'turnEndsAt': None,
-            'stake': str(stake),
-            'gameType': game_type,
-        },
-    )
+    stake_decimal = Decimal(str(stake))
+    
+    with transaction.atomic():
+        match = Match.objects.create(
+            player1=player1,
+            status='waiting',
+            game_state={
+                'board': [None] * 9,
+                'currentPlayer': 'X',
+                'players': {'X': player1.id},
+                'turnEndsAt': None,
+                'stake': str(stake_decimal),
+                'gameType': game_type,
+            },
+        )
+        
+        # Deduct stake
+        if stake_decimal > 0:
+            WalletService.lock_stake(player1, stake_decimal, match.id)
+            
     return match
 
 def join_match(match_id, player2_id):
@@ -57,6 +70,12 @@ def join_match(match_id, player2_id):
             raise ValueError('Cannot join your own match')
 
         player2 = User.objects.get(id=player2_id)
+        stake = Decimal(match.game_state.get('stake', '0'))
+        
+        # Deduct stake for player 2
+        if stake > 0:
+            WalletService.lock_stake(player2, stake, match.id)
+
         deadline = turn_deadline()
         match.player2 = player2
         match.status = 'active'
@@ -115,11 +134,27 @@ def make_move(match_id, player_id, position):
         if result:
             state['board'] = board
             state['turnEndsAt'] = None
+            stake = Decimal(state.get('stake', '0'))
+            
             if result == 'draw':
                 state['winner'] = 'draw'
+                # Refund both players
+                if stake > 0:
+                    WalletService.refund_stake(match.player1, stake, match.id, reason="Match Drawn")
+                    WalletService.refund_stake(match.player2, stake, match.id, reason="Match Drawn")
             else:
                 state['winner'] = result
-                match.winner_id = state.get('players', {}).get(result)
+                winner_player_id = state.get('players', {}).get(result)
+                match.winner_id = winner_player_id
+                
+                # Payout winner
+                if stake > 0:
+                    total_pot = stake * 2
+                    fee = total_pot * Decimal(str(PLATFORM_FEE_PERCENT / 100))
+                    payout_amount = total_pot - fee
+                    winner = match.player1 if match.player1_id == winner_player_id else match.player2
+                    WalletService.payout_win(winner, payout_amount, match.id)
+            
             match.status = 'completed'
             match.game_state = state
             match.save(update_fields=['winner', 'status', 'game_state', 'updated_at'])

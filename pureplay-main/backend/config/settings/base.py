@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.wallet',
     'apps.auth_extras',
     'apps.matchmaking',
+    'apps.tournaments',
 ]
 
 MIDDLEWARE = [

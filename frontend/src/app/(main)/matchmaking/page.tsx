@@ -4,12 +4,6 @@ import { ArrowLeft, Bot, Loader2, RefreshCw, Swords, Users } from 'lucide-react'
 import { matchmakingApi } from '../../../services/api/matchmaking.api';
 import type { AvailablePlayer, MatchmakingMode, OpenMatch } from '../../../types/matchmaking.types';
 
-const fallbackPlayers: AvailablePlayer[] = [
-  { id: 'demo-shadow', username: 'ShadowMaster', tier: 'Gold', rank: 1240, preferredStake: 500, status: 'online' },
-  { id: 'demo-quantum', username: 'QuantumKing', tier: 'Silver', rank: 1180, preferredStake: 1000, status: 'online' },
-  { id: 'demo-pro', username: 'ProGamerX', tier: 'Bronze', rank: 1060, preferredStake: 100, status: 'online' },
-];
-
 export const MatchmakingPage = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<MatchmakingMode>('quick_match');
@@ -30,6 +24,10 @@ export const MatchmakingPage = () => {
       const { data } = await matchmakingApi.getOpenMatches('tictactoe', stake);
       setOpenMatches(data);
       return data;
+    } catch (error) {
+       console.error('Failed to fetch open matches', error);
+       setOpenMatches([]);
+       return [];
     } finally {
       if (!silent) setOpenMatchesLoading(false);
     }
@@ -67,8 +65,8 @@ export const MatchmakingPage = () => {
       } catch (error) {
         console.error('Failed to fetch available players', error);
         if (!cancelled) {
-          setAvailablePlayers(fallbackPlayers);
-          setPlayersHint('Showing featured players while live availability refreshes.');
+          setAvailablePlayers([]);
+          setPlayersHint('Could not load players. Please check your connection.');
         }
       } finally {
         if (!cancelled) {

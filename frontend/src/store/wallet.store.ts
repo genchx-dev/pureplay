@@ -42,7 +42,8 @@ export const useWalletStore = create<WalletState>((set) => ({
     set({ loading: true });
     try {
       const { data } = await walletApi.deposit(amount);
-      set((state) => ({ balance: data.balance ?? state.balance, loading: false, error: null }));
+      // data is { transaction: {...}, balance: number }
+      set({ balance: data.balance, loading: false, error: null });
       await useWalletStore.getState().fetchTransactions();
     } catch (error) {
       console.error('Failed to deposit', error);
@@ -53,7 +54,8 @@ export const useWalletStore = create<WalletState>((set) => ({
     set({ loading: true });
     try {
       const { data } = await walletApi.withdraw(amount, bankDetails);
-      set((state) => ({ balance: data.balance ?? state.balance, loading: false, error: null }));
+      // data is { transaction: {...}, balance: number }
+      set({ balance: data.balance, loading: false, error: null });
       await useWalletStore.getState().fetchTransactions();
     } catch (error) {
       console.error('Failed to withdraw', error);

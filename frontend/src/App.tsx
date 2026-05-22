@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { LoginPage } from './app/(auth)/login/page';
 import { RegisterPage } from './app/(auth)/register/page';
 import { MatchmakingPage } from './app/(main)/matchmaking/page';
+import { WalletPage } from './app/(main)/wallet/page';
 import HomePage from './app/(main)/dashboard/page';
 import { useAuthStore } from './store/auth.store';
 
@@ -41,6 +42,11 @@ export function App() {
         <Route path="/matchmaking" element={
             <ProtectedRoute>
                 <MatchmakingPage />
+            </ProtectedRoute>
+        } />
+        <Route path="/wallet" element={
+            <ProtectedRoute>
+                <WalletPage />
             </ProtectedRoute>
         } />
         <Route path="/game" element={<Navigate to="/matchmaking" />} />

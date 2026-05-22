@@ -17,10 +17,10 @@ export const Header = ({ isAuthenticated, balance }: HeaderProps) => {
       
       <div className="flex items-center gap-3">
          {isAuthenticated ? (
-            <div className="flex items-center gap-2 bg-black/90 rounded-full px-4 py-2 border border-black/20">
+            <Link to="/wallet" className="flex items-center gap-2 bg-black/90 rounded-full px-4 py-2 border border-black/20 hover:bg-black/70 transition-colors">
               <Wallet size={18} className="text-white" />
               <span className="font-semibold text-white">₦{balance.toLocaleString()}</span>
-            </div>
+            </Link>
           ) : (
             <div className="flex items-center gap-2">
               <Link to="/login" className="px-4 py-1.5 rounded-full border-2 border-black text-black hover:bg-black/10 transition-colors font-semibold text-sm">Login</Link>

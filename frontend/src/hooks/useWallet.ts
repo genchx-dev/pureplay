@@ -8,6 +8,14 @@ export const useWallet = (autoFetch = false) => {
     if (autoFetch) {
       fetchBalance();
       fetchTransactions();
+
+      // Set up polling for balance and transactions every 10 seconds
+      const intervalId = setInterval(() => {
+        fetchBalance();
+        fetchTransactions();
+      }, 10000);
+
+      return () => clearInterval(intervalId);
     }
   }, [autoFetch, fetchBalance, fetchTransactions]);
 

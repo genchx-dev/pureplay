@@ -8,7 +8,7 @@ type WalletAction = 'deposit' | 'withdraw' | null;
 export const WalletPage = () => {
   const { isAuthenticated } = useAuth();
   const { balance = 0, transactions, loading, error, deposit, withdraw } = useWallet(isAuthenticated);
-  const walletActionsEnabled = false;
+  const walletActionsEnabled = true;
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
   const [walletAction, setWalletAction] = useState<WalletAction>(null);
   const [amount, setAmount] = useState('');

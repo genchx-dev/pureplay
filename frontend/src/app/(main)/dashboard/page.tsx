@@ -4,7 +4,8 @@ import {
   Swords, 
   Trophy, 
   TrendingUp, 
-  User
+  User,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -21,6 +22,7 @@ import { ChallengePage } from './ChallengePage';
 import { TournamentPage } from '../tournaments/page';
 import { LeaderboardPage } from './LeaderboardPage';
 import { MePage } from '../settings/page';
+import { WalletPage } from '../wallet/page';
 
 // Import game assets
 import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
@@ -82,6 +84,7 @@ export const HomePage = () => {
     { id: 'challenge', icon: Swords, label: 'Challenge' },
     { id: 'tournament', icon: Trophy, label: 'Tournament' },
     { id: 'leaderboard', icon: TrendingUp, label: 'Leaderboard' },
+    { id: 'wallet', icon: Wallet, label: 'Wallet' },
     { id: 'me', icon: User, label: 'Me' },
   ];
 
@@ -91,6 +94,7 @@ export const HomePage = () => {
       case 'challenge': return <ChallengePage />;
       case 'tournament': return <TournamentPage />;
       case 'leaderboard': return <LeaderboardPage />;
+      case 'wallet': return <WalletPage />;
       case 'me': return <MePage />;
       default: return <HomeContent />;
     }

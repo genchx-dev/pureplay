@@ -16,14 +16,8 @@ import { useWallet } from '../../../hooks/useWallet';
 
 export const MePage = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const { balance = 0 } = useWallet(isAuthenticated);
+  const { balance = 0, transactions } = useWallet(isAuthenticated);
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
-
-  const transactions = [
-    { id: 1, type: 'Deposit Success', date: 'May 14, 2026', time: '12:45 PM', amount: 2500, status: 'Completed', positive: true },
-    { id: 2, type: 'Match Stake', date: 'May 13, 2026', time: '03:20 PM', amount: -500, status: 'Completed', positive: false },
-    { id: 3, type: 'Match Win', date: 'May 13, 2026', time: '03:25 PM', amount: 950, status: 'Completed', positive: true },
-  ];
 
   const gameHistory = [
     { id: 1, game: 'Tic Tac Toe', opponent: 'ShadowMaster', result: 'WIN', earnings: 950, date: 'May 13, 2026', time: '03:25 PM' },
@@ -62,22 +56,20 @@ export const MePage = () => {
           </div>
           <div className="flex gap-3">
             <button
-              disabled
-              title="Deposit is pending backend wallet ledger support"
-              className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all disabled:opacity-60"
+              onClick={() => window.location.assign('/wallet')}
+              className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all active:scale-95"
             >
               Deposit
             </button>
             <button
-              disabled
-              title="Withdrawal is pending backend wallet ledger support"
-              className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all disabled:opacity-60"
+              onClick={() => window.location.assign('/wallet')}
+              className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all active:scale-95"
             >
               Withdraw
             </button>
           </div>
           <p className="mt-3 text-xs font-medium text-zinc-500">
-            Wallet money movement is pending backend ledger support.
+            Wallet ledger and match stakes are fully operational.
           </p>
         </div>
       </div>
@@ -108,29 +100,40 @@ export const MePage = () => {
         <div className="bg-card rounded-3xl border border-border overflow-hidden">
           {activeTab === 'transactions' ? (
             <div className="divide-y divide-zinc-800/50">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.positive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                    }`}>
-                      {tx.positive ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-white group-hover:text-primary transition-colors">{tx.type}</div>
-                      <div className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 mt-0.5">
-                        <Clock size={10} /> {tx.date}
+              {transactions.length === 0 && (
+                <div className="p-8 text-center text-sm font-medium text-zinc-500">
+                  No transactions yet.
+                </div>
+              )}
+              {transactions.map((tx) => {
+                const positive = tx.amount > 0 || tx.type === 'deposit' || tx.type === 'win' || tx.type === 'refund';
+                const label = tx.description || tx.type.replace('-', ' ');
+                const date = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'Recent';
+                
+                return (
+                  <div key={tx.id} className="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        positive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {positive ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white group-hover:text-primary transition-colors capitalize">{label}</div>
+                        <div className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 mt-0.5">
+                          <Clock size={10} /> {date}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-black ${tx.positive ? 'text-green-500' : 'text-zinc-300'}`}>
-                      {tx.positive ? '+' : ''}₦{tx.amount.toLocaleString()}
+                    <div className="text-right">
+                      <div className={`text-sm font-black ${positive ? 'text-green-500' : 'text-zinc-300'}`}>
+                        {positive ? '+' : '-'}₦{Math.abs(tx.amount).toLocaleString()}
+                      </div>
+                      <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">{tx.status}</div>
                     </div>
-                    <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">{tx.status}</div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="divide-y divide-zinc-800/50">

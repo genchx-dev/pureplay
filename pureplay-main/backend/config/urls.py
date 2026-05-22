@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/matches/', include('apps.matches.urls')),
     path('api/wallet/', include('apps.wallet.urls')),
     path('api/matchmaking/', include('apps.matchmaking.urls')),
-]
+    path('api/tournaments/', include('apps.tournaments.urls')),
+    ]
