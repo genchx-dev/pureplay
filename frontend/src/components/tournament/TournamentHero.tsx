@@ -1,3 +1,4 @@
+import { Clock, Coins, Flame, Trophy, Users } from 'lucide-react';
 import { type PrizeDistribution } from '../../types/tournament.types';
 
 interface TournamentHeroProps {
@@ -6,8 +7,10 @@ interface TournamentHeroProps {
   startsIn: string;
   entryFee: number;
   joinedUsers: number;
+  maxParticipants: number;
   totalPrize: number;
   prizes: PrizeDistribution[];
+  gameImage: string;
   onEnter: () => void;
 }
 
@@ -17,58 +20,96 @@ export const TournamentHero = ({
   startsIn,
   entryFee,
   joinedUsers,
+  maxParticipants,
   totalPrize,
   prizes,
-  onEnter
+  gameImage,
+  onEnter,
 }: TournamentHeroProps) => {
+  const spotsLeft = Math.max(0, maxParticipants - joinedUsers);
+
   return (
-    <div className="bg-gradient-to-br from-zinc-900 to-black rounded-2xl p-5 border border-primary/20 shadow-xl shadow-primary/5">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-zinc-900 to-black p-5 shadow-xl shadow-primary/5">
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-zinc-900">
+          <img src={gameImage} alt="" className="h-full w-full object-cover" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-300">
+            <Flame size={12} />
+            Main Event
+          </div>
+          <h2 className="text-xl font-black uppercase tracking-wide text-white md:text-2xl">{title}</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[0.82fr_1.18fr] gap-4">
+        <div className="space-y-3">
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+              <Clock size={12} />
+              Countdown
+            </div>
+            <div className="text-2xl font-black text-primary">{startsIn}</div>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+              <Users size={12} />
+              Players
+            </div>
+            <div className="text-lg font-black text-white">{joinedUsers}/{maxParticipants}</div>
+            <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">{spotsLeft} slots left</div>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+              <Coins size={12} />
+              Entry
+            </div>
+            <div className="text-lg font-black text-white">N{entryFee.toLocaleString()}</div>
+          </div>
+        </div>
+
         <div>
-          <h2 className="text-xl font-black uppercase tracking-wide text-white">{title}</h2>
-          <p className="mt-1 max-w-xl text-sm text-zinc-400">{description}</p>
-        </div>
-        <button
-          onClick={onEnter}
-          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-black transition-transform hover:scale-[1.02]"
-        >
-          Enter ₦{entryFee.toLocaleString()}
-        </button>
-      </div>
-
-      <div className="flex gap-4">
-        {/* Left Side */}
-        <div className="flex-1 space-y-4">
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-1 uppercase font-bold tracking-widest">Countdown Timer</div>
-            <div className="text-2xl font-bold text-primary">{startsIn}</div>
+          <div className="mb-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary">
+              <Trophy size={12} />
+              Prize Pool
+            </div>
+            <div className="text-2xl font-black text-primary md:text-3xl">N{totalPrize.toLocaleString()}</div>
           </div>
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-1 uppercase font-bold tracking-widest">Participants No.</div>
-            <div className="text-xl font-semibold text-white">{joinedUsers}</div>
-          </div>
-        </div>
 
-        {/* Right Side */}
-        <div className="flex-1">
-          <div className="text-[10px] text-zinc-400 mb-2 uppercase font-bold tracking-widest">Pot Prize</div>
-          <div className="mb-2 text-xl font-black text-primary">₦{totalPrize.toLocaleString()}</div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between bg-gradient-to-r from-primary/20 to-transparent rounded-lg px-3 py-2 border border-primary/30">
-              <span className="text-xs text-zinc-300">1st</span>
-              <span className="text-sm font-bold text-primary">₦{prizes[0]?.prize.toLocaleString() || '0'}</span>
-            </div>
-            <div className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2 border border-zinc-700">
-              <span className="text-xs text-zinc-400">2nd</span>
-              <span className="text-sm font-semibold text-zinc-300">₦{prizes[1]?.prize.toLocaleString() || '0'}</span>
-            </div>
-            <div className="flex items-center justify-between bg-zinc-800/30 rounded-lg px-3 py-2 border border-zinc-700">
-              <span className="text-xs text-zinc-400">3rd</span>
-              <span className="text-sm font-semibold text-zinc-400">₦{prizes[2]?.prize.toLocaleString() || '0'}</span>
-            </div>
+            {prizes.slice(0, 5).map((prize, index) => (
+              <div
+                key={prize.rank}
+                className={`flex items-center justify-between rounded-lg border px-2.5 py-2 ${
+                  index === 0
+                    ? 'border-primary/40 bg-primary/10'
+                    : 'border-zinc-800 bg-zinc-950/80'
+                }`}
+              >
+                <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-widest text-zinc-400">
+                  {index + 1}. {prize.rank.replace(' PLACE', '')}
+                </span>
+                <span className={`shrink-0 text-xs font-black ${index === 0 ? 'text-primary' : 'text-zinc-200'}`}>
+                  N{prize.prize.toLocaleString()}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </div>
+
+      <button
+        onClick={onEnter}
+        className="mt-5 w-full rounded-xl bg-primary px-6 py-4 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01]"
+      >
+        Join Tournament
+      </button>
+    </section>
   );
 };

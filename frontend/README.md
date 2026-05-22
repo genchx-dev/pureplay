@@ -1,55 +1,65 @@
-# PUREPLAY Frontend (MVP)
+# PurePlay Frontend
 
-A real-time competitive gaming platform MVP, featuring a premium "Gold & Black" aesthetic, built with React 19 and Tailwind CSS 4.
+This is the active PurePlay frontend. It is built with React, Vite, TypeScript, Tailwind CSS, Zustand, Axios, and Lucide icons.
 
-## 🚀 Key Features
-- **Premium UI:** Standardized Gold & Black theme with Shrikhand branding.
-- **Auth Flow:** Complete Login/Register flow with session restoration (`checkAuth`).
-- **Real-time Ready:** WebSocket service integrated for live game synchronization.
-- **Responsive:** Optimized for both Mobile (Bottom Nav) and PC (Collapsible Sidebar).
-- **Games:** Fully animated TicTacToe engine (Simulated for testing).
+The active backend is:
 
-## 🛠 Tech Stack
-- **Framework:** React 19 + Vite
-- **Styling:** Tailwind CSS 4 (Standardized variables in `index.css`)
-- **State Management:** Zustand (Auth, Wallet, Game stores)
-- **Icons:** Lucide-React
-- **API Client:** Axios (with Interceptors for JWT)
+```text
+../pureplay-main/backend
+```
 
-## 🔧 Backend Integration Guide
-The frontend is built to be "Plug & Play" for the backend partner.
+## Environment
 
-### 1. Environment Variables
-Create a `.env` file in the root:
+Create or update `frontend/.env`:
+
 ```env
 VITE_API_URL=http://localhost:8000/api
 VITE_WS_URL=ws://localhost:8000/ws
 ```
 
-### 2. API Expectations
-- **Auth:**
-  - `POST /auth/register/` -> Returns `{ user, token }`
-  - `POST /auth/login/` -> Returns `{ user, token }`
-  - `GET /auth/profile/` -> Returns user object (for session restoration)
-- **Wallet:**
-  - `GET /wallet/balance/` -> Returns `{ balance }`
+## Run
 
-### 3. WebSocket Contract
-Connect to: `${VITE_WS_URL}/matches/{matchId}/?token={token}`
+```powershell
+cd C:\Users\USER\pureplay\frontend
+npm install
+npm.cmd run dev
+```
 
-**Events Expected from Server:**
-- `MATCH_START`: Initialize game state.
-- `MOVE_MADE`: Update board and turn.
-- `GAME_OVER`: Final results and winner.
-- `ERROR`: Display backend errors.
+The dev app runs at:
 
-**Actions Sent to Server:**
-- `MAKE_MOVE`: Payload `{ payload: { position: number } }`
+```text
+http://127.0.0.1:5173
+```
 
-## 🏃‍♂️ Getting Started
-1. `npm install`
-2. `cp .env.example .env` (Configure your backend URLs)
-3. `npm run dev`
+## Verify
 
----
-**Note:** The Game Page currently operates in "Simulation Mode" allowing local moves for both players to facilitate UI testing.
+```powershell
+npm.cmd run build
+npm.cmd run lint
+```
+
+## Backend Contract Summary
+
+The frontend sends API auth as:
+
+```http
+Authorization: Token <token>
+```
+
+Expected backend base URLs:
+
+- REST API: `http://localhost:8000/api`
+- WebSocket: `ws://localhost:8000/ws`
+
+Key flows:
+
+- `POST /api/auth/register/` returns `{ token, user }`.
+- `POST /api/auth/login/` returns `{ token, user }`.
+- `GET /api/auth/profile/` returns the current user.
+- `POST /api/matchmaking/queue/` joins Quick Match.
+- `GET /api/matchmaking/open-matches/` lists open challenges.
+- `POST /api/matchmaking/open-matches/accept/` accepts a challenge.
+- WebSocket connects to `/ws/matches/{matchId}/?token={token}`.
+- Client sends `MAKE_MOVE` with `{ payload: { position } }`.
+
+For the full contract, see `../docs/api-contract.md`.

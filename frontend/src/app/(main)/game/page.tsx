@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { X, User, Circle, Trophy, Wifi, WifiOff } from 'lucide-react';
+import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 
@@ -35,6 +35,13 @@ export const GamePage = () => {
   };
 
   const statusLabel = status === 'playing' ? 'LIVE' : status === 'finished' || status === 'draw' ? 'GAME OVER' : 'CONNECTING...';
+  const didWin = winner && winner !== 'draw' && playerSymbol === winner;
+  const resultTitle = winner === 'draw' ? 'Draw Match' : didWin ? 'You Won' : 'Match Complete';
+  const resultDescription = winner === 'draw'
+    ? 'Both players held the board. No winner this round.'
+    : didWin
+      ? 'Clean finish. Your result is locked for this match.'
+      : `${winner || 'Opponent'} wins this match.`;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
@@ -67,19 +74,41 @@ export const GamePage = () => {
           </div>
         </header>
 
-        {(error || status === 'finished' || status === 'draw') && (
-          <div className={`mb-6 rounded-2xl border p-4 text-center text-sm font-bold ${
-            error ? 'border-red-500/40 bg-red-500/10 text-red-300' : 'border-primary/30 bg-primary/10 text-primary'
-          }`}>
-            {error || (winner === 'draw' ? 'Match ended in a draw' : `${winner || 'Winner'} wins the match`)}
-            {error && (
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-bold text-red-300">
+            {error}
+            <button
+              onClick={reconnect}
+              className="mt-3 block w-full rounded-xl bg-red-500/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-100 transition-colors hover:bg-red-500/30"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
+
+        {(status === 'finished' || status === 'draw') && (
+          <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/10 p-5 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-black">
+              <Trophy size={26} />
+            </div>
+            <h2 className="text-xl font-black uppercase tracking-widest text-primary">{resultTitle}</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-zinc-300">{resultDescription}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <button
-                onClick={reconnect}
-                className="mt-3 block w-full rounded-xl bg-red-500/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-100 transition-colors hover:bg-red-500/30"
+                onClick={() => navigate('/matchmaking')}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-black"
               >
-                Reconnect
+                <Swords size={15} />
+                Rematch
               </button>
-            )}
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-xs font-black uppercase tracking-widest text-zinc-300"
+              >
+                <RotateCcw size={15} />
+                Home
+              </button>
+            </div>
           </div>
         )}
 

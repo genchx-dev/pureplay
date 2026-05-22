@@ -61,9 +61,24 @@ export const MePage = () => {
             <span className="text-primary font-black text-2xl font-mono">₦{balance.toLocaleString()}</span>
           </div>
           <div className="flex gap-3">
-            <button className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 active:scale-95 transition-all">Deposit</button>
-            <button className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm hover:bg-primary/5 active:scale-95 transition-all">Withdraw</button>
+            <button
+              disabled
+              title="Deposit is pending backend wallet ledger support"
+              className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all disabled:opacity-60"
+            >
+              Deposit
+            </button>
+            <button
+              disabled
+              title="Withdrawal is pending backend wallet ledger support"
+              className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all disabled:opacity-60"
+            >
+              Withdraw
+            </button>
           </div>
+          <p className="mt-3 text-xs font-medium text-zinc-500">
+            Wallet money movement is pending backend ledger support.
+          </p>
         </div>
       </div>
 

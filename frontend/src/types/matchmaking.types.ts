@@ -11,6 +11,22 @@ export interface JoinQueueResponse {
   matchId?: string;
 }
 
+export interface OpenMatch {
+  id: string;
+  gameType: 'tictactoe';
+  stake: number;
+  player: {
+    id: string;
+    username: string;
+    tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+    rank?: number;
+  };
+}
+
+export interface AcceptOpenMatchRequest {
+  queueId: string;
+}
+
 export interface AvailablePlayer {
   id: string;
   username: string;

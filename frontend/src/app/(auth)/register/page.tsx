@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, UserPlus } from 'lucide-react';
+import { AxiosError } from 'axios';
+import { User, Mail, Lock, Eye, EyeOff, Phone, ShieldCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 
 export const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,6 +21,7 @@ export const RegisterPage = () => {
   const validateForm = () => {
     if (username.length < 3) return 'Username must be at least 3 characters';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Invalid email address';
+    if (!/^\+?[0-9]{10,15}$/.test(phone.replace(/\s/g, ''))) return 'Enter a valid phone number';
     if (password.length < 6) return 'Password must be at least 6 characters';
     if (password !== confirmPassword) return 'Passwords do not match';
     if (!agreeToTerms) return 'You must agree to the terms and conditions';
@@ -37,11 +40,12 @@ export const RegisterPage = () => {
 
     setIsLoading(true);
     try {
+      localStorage.setItem('pendingPhoneNumber', phone.trim());
       await register({ username, email, password });
       navigate('/');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Registration failed', err);
-      const errorData = err.response?.data;
+      const errorData = err instanceof AxiosError ? err.response?.data : null;
       let errorMessage = 'Registration failed. Please try again.';
       
       if (errorData) {
@@ -118,6 +122,22 @@ export const RegisterPage = () => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Phone Number</label>
+            <div className="relative group">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-primary transition-colors" size={18} />
+              <input
+                type="tel"
+                required
+                inputMode="tel"
+                placeholder="+2348012345678"
+                className="w-full p-4 pl-12 rounded-2xl bg-background border border-border text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-zinc-700 font-medium"
+                onChange={(e) => setPhone(e.target.value)}
+                value={phone}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Password</label>
@@ -126,7 +146,7 @@ export const RegisterPage = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="••••••••"
+                  placeholder="********"
                   className="w-full p-4 pl-12 pr-12 rounded-2xl bg-background border border-border text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-zinc-700 font-medium"
                   onChange={(e) => setPassword(e.target.value)}
                   value={password}
@@ -147,7 +167,7 @@ export const RegisterPage = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="••••••••"
+                  placeholder="********"
                   className="w-full p-4 pl-12 rounded-2xl bg-background border border-border text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-zinc-700 font-medium"
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   value={confirmPassword}

@@ -35,20 +35,24 @@ const HomeContent = () => {
     { rank: '1ST PLACE', prize: 25000, color: 'text-primary', bg: 'bg-primary/10' },
     { rank: '2ND PLACE', prize: 12500, color: 'text-zinc-300', bg: 'bg-zinc-800/50' },
     { rank: '3RD PLACE', prize: 7500, color: 'text-amber-700', bg: 'bg-amber-900/10' },
+    { rank: '4TH PLACE', prize: 3500, color: 'text-zinc-400', bg: 'bg-zinc-900' },
+    { rank: '5TH PLACE', prize: 1500, color: 'text-zinc-500', bg: 'bg-zinc-900' },
   ];
 
   return (
-    <div className="px-6 pb-24 space-y-6">
+    <div className="px-4 pb-24 space-y-6 md:px-6">
       <div className="pt-6">
         <TournamentHero 
-          title="ULTIMATE TIC-TAC-TOE"
-          description="Join the ranks of elite players and win massive prizes."
+          title="Ultimate Tic Tac Toe Cup"
+          description="Enter the headline weekend bracket, climb the table, and fight for a live top-5 prize pool."
           startsIn="02:45:30"
           entryFee={500}
           joinedUsers={128}
+          maxParticipants={256}
           totalPrize={50000}
           prizes={prizes}
-          onEnter={() => console.log('Entering Arena')}
+          gameImage={tictactoeLogo}
+          onEnter={() => window.location.assign('/matchmaking')}
         />
       </div>
 

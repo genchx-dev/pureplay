@@ -1,6 +1,6 @@
 # PurePlay API Contract
 
-This is the frontend/backend integration contract for the PurePlay MVP.
+This is the integration contract between the active frontend at `frontend/` and the active backend at `pureplay-main/backend/`.
 
 ## Environment
 
@@ -9,6 +9,12 @@ Frontend reads these variables from `frontend/.env`:
 ```env
 VITE_API_URL=http://localhost:8000/api
 VITE_WS_URL=ws://localhost:8000/ws
+```
+
+Authenticated REST requests use DRF token auth:
+
+```http
+Authorization: Token <token>
 ```
 
 ## Auth REST API
@@ -27,20 +33,21 @@ Request:
 }
 ```
 
+Frontend note: the registration screen now collects a phone number for future challenge notifications, but the active backend register endpoint does not yet accept or persist `phone`.
+
 Response:
 
 ```json
 {
+  "token": "drf-token",
   "user": {
-    "id": 1,
+    "id": "1",
     "username": "player1",
     "email": "player@example.com",
     "tier": "Bronze",
     "rank": 1000,
     "avatar": null
-  },
-  "token": "access-jwt",
-  "refresh": "refresh-jwt"
+  }
 }
 ```
 
@@ -52,7 +59,7 @@ Request:
 
 ```json
 {
-  "username": "player@example.com",
+  "username": "player1",
   "password": "password123"
 }
 ```
@@ -68,14 +75,14 @@ Response shape is the same as register.
 Headers:
 
 ```http
-Authorization: Bearer access-jwt
+Authorization: Token <token>
 ```
 
 Response:
 
 ```json
 {
-  "id": 1,
+  "id": "1",
   "username": "player1",
   "email": "player@example.com",
   "tier": "Bronze",
@@ -86,11 +93,7 @@ Response:
 
 ## Wallet REST API
 
-All wallet endpoints require:
-
-```http
-Authorization: Bearer access-jwt
-```
+Current active backend wallet endpoints are MVP placeholders.
 
 ### Balance
 
@@ -100,7 +103,8 @@ Response:
 
 ```json
 {
-  "balance": 2500
+  "balance": 1000,
+  "currency": "PP"
 }
 ```
 
@@ -111,96 +115,56 @@ Response:
 Response:
 
 ```json
-[
-  {
-    "id": "tx_123",
-    "type": "deposit",
-    "amount": 2500,
-    "status": "completed",
-    "createdAt": "2026-05-18T12:00:00Z"
-  }
-]
+[]
 ```
 
-### Deposit
+Planned but not implemented in the active backend:
 
-`POST /api/wallet/deposit/`
+- `POST /api/wallet/deposit/`
+- `POST /api/wallet/withdraw/`
+- `POST /api/wallet/lock-stake/`
 
-Request:
+## Tournament REST API
+
+Tournament UI is currently frontend-only. The home dashboard displays a headline tournament flyer with countdown, entry fee, joined users, total prize pool, and top-5 prize preview.
+
+Planned backend endpoints:
+
+- `GET /api/tournaments/featured/`
+- `POST /api/tournaments/{tournamentId}/join/`
+- `GET /api/tournaments/{tournamentId}/prizes/`
+
+Suggested featured tournament response:
 
 ```json
 {
-  "amount": 2500
-}
-```
-
-Response:
-
-```json
-{
-  "balance": 2500,
-  "transactionId": "tx_123"
-}
-```
-
-### Withdraw
-
-`POST /api/wallet/withdraw/`
-
-Request:
-
-```json
-{
-  "amount": 1000,
-  "bankDetails": {
-    "bankName": "Bank",
-    "accountNumber": "0000000000",
-    "accountName": "Player One"
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "balance": 1500,
-  "transactionId": "tx_124"
-}
-```
-
-### Lock Stake
-
-`POST /api/wallet/lock-stake/`
-
-Request:
-
-```json
-{
-  "matchId": "match_123",
-  "amount": 500
-}
-```
-
-Response:
-
-```json
-{
-  "matchId": "match_123",
-  "lockedAmount": 500,
-  "balance": 1000
+  "id": "tournament_1",
+  "name": "Ultimate Tic Tac Toe Cup",
+  "gameType": "tictactoe",
+  "entryFee": 500,
+  "joinedUsers": 128,
+  "maxParticipants": 256,
+  "totalPrize": 50000,
+  "startsAt": "2026-05-22T18:00:00Z",
+  "prizes": [
+    { "rank": "1ST PLACE", "prize": 25000 },
+    { "rank": "2ND PLACE", "prize": 12500 },
+    { "rank": "3RD PLACE", "prize": 7500 },
+    { "rank": "4TH PLACE", "prize": 3500 },
+    { "rank": "5TH PLACE", "prize": 1500 }
+  ]
 }
 ```
 
 ## Matchmaking REST API
 
-The Tic Tac Toe entry flow now has three frontend modes:
+The Tic Tac Toe entry flow has three frontend modes:
 
-- `Practice Bot`: frontend-only demo mode, no backend endpoint required for MVP.
-- `Quick Match`: queue for any available player.
-- `Challenge Player`: load online players and send a direct challenge.
+- `Practice Bot`: frontend-only demo mode.
+- `Quick Match`: publish a stake and accept open challenges.
+- `Challenge Player`: load available players and immediately create a match for MVP testing.
 
-### Quick Match
+### Join Quick Match
 
 `POST /api/matchmaking/queue/`
 
@@ -227,7 +191,62 @@ Response when matched:
 ```json
 {
   "status": "matched",
-  "matchId": "match_123"
+  "matchId": "1"
+}
+```
+
+### Cancel Queue
+
+`POST /api/matchmaking/queue/cancel/`
+
+Response:
+
+```json
+{
+  "status": "cancelled"
+}
+```
+
+### Open Matches
+
+`GET /api/matchmaking/open-matches/?gameType=tictactoe&stake=500`
+
+Response:
+
+```json
+[
+  {
+    "id": "1:tictactoe:500",
+    "gameType": "tictactoe",
+    "stake": 500,
+    "player": {
+      "id": "1",
+      "username": "player1",
+      "tier": "Bronze",
+      "rank": 1000
+    }
+  }
+]
+```
+
+### Accept Open Match
+
+`POST /api/matchmaking/open-matches/accept/`
+
+Request:
+
+```json
+{
+  "queueId": "1:tictactoe:500"
+}
+```
+
+Response:
+
+```json
+{
+  "status": "matched",
+  "matchId": "1"
 }
 ```
 
@@ -240,10 +259,10 @@ Response:
 ```json
 [
   {
-    "id": "user_123",
-    "username": "ShadowMaster",
-    "tier": "Gold",
-    "rank": 1240,
+    "id": "2",
+    "username": "opponent",
+    "tier": "Bronze",
+    "rank": 1000,
     "preferredStake": 500,
     "status": "online"
   }
@@ -260,25 +279,16 @@ Request:
 {
   "gameType": "tictactoe",
   "stake": 500,
-  "opponentId": "user_123"
+  "opponentId": "2"
 }
 ```
 
-Response when pending:
-
-```json
-{
-  "status": "pending",
-  "challengeId": "challenge_123"
-}
-```
-
-Response when immediately matched:
+Response:
 
 ```json
 {
   "status": "matched",
-  "matchId": "match_123"
+  "matchId": "1"
 }
 ```
 
@@ -287,13 +297,13 @@ Response when immediately matched:
 Connect to:
 
 ```text
-{VITE_WS_URL}/matches/{matchId}/?token={access-jwt}
+{VITE_WS_URL}/matches/{matchId}/?token={token}
 ```
 
 Example:
 
 ```text
-ws://localhost:8000/ws/matches/match_123/?token=access-jwt
+ws://localhost:8000/ws/matches/1/?token=drf-token
 ```
 
 ### Client Events
@@ -318,11 +328,11 @@ ws://localhost:8000/ws/matches/match_123/?token=access-jwt
 ```json
 {
   "type": "MATCH_START",
-  "matchId": "match_123",
+  "matchId": "1",
   "board": [null, null, null, null, null, null, null, null, null],
   "currentPlayer": "X",
   "playerSymbol": "X",
-  "turnEndsAt": "2026-05-18T12:00:10Z"
+  "turnEndsAt": "2026-05-22T12:00:10Z"
 }
 ```
 
@@ -333,13 +343,11 @@ ws://localhost:8000/ws/matches/match_123/?token=access-jwt
   "type": "MOVE_MADE",
   "board": [null, null, null, null, "X", null, null, null, null],
   "nextPlayer": "O",
-  "turnEndsAt": "2026-05-18T12:00:20Z"
+  "turnEndsAt": "2026-05-22T12:00:20Z"
 }
 ```
 
 #### Turn Skip
-
-The backend should emit this if a player does not move within 10 seconds.
 
 ```json
 {
@@ -347,7 +355,7 @@ The backend should emit this if a player does not move within 10 seconds.
   "skippedPlayer": "X",
   "nextPlayer": "O",
   "board": [null, null, null, null, "X", null, null, null, null],
-  "turnEndsAt": "2026-05-18T12:00:20Z"
+  "turnEndsAt": "2026-05-22T12:00:20Z"
 }
 ```
 
@@ -360,8 +368,8 @@ The backend should emit this if a player does not move within 10 seconds.
   "reason": "three_in_row",
   "board": ["X", "X", "X", null, "O", null, null, null, "O"],
   "payout": {
-    "winnerAmount": 950,
-    "platformFee": 50
+    "winnerAmount": 0,
+    "platformFee": 0
   }
 }
 ```
@@ -386,14 +394,6 @@ For a draw:
 }
 ```
 
-## Backend Requirements For Current Frontend
+## Maintenance Rule
 
-- Validate the JWT passed in the WebSocket query string.
-- Keep match state server-side, not only in memory on the frontend.
-- Enforce a 10-second turn timer on the server.
-- On timeout, emit `TURN_SKIP` and pass the turn to the other player.
-- Do not reset the board on reconnect.
-- Keep payloads small and stable.
-- Support `Quick Match` with `POST /matchmaking/queue/`.
-- Support `Challenge Player` with `GET /matchmaking/available-players/` and `POST /matchmaking/challenge/`.
-- `Practice Bot` is frontend-only for now and does not require backend work for MVP.
+When route paths, payload shapes, auth method, environment variables, or websocket event names change, update this contract and the root `README.md` in the same change.

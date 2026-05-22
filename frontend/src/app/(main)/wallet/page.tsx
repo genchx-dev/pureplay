@@ -8,6 +8,7 @@ type WalletAction = 'deposit' | 'withdraw' | null;
 export const WalletPage = () => {
   const { isAuthenticated } = useAuth();
   const { balance = 0, transactions, loading, error, deposit, withdraw } = useWallet(isAuthenticated);
+  const walletActionsEnabled = false;
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
   const [walletAction, setWalletAction] = useState<WalletAction>(null);
   const [amount, setAmount] = useState('');
@@ -92,7 +93,8 @@ export const WalletPage = () => {
           <div className="flex gap-3">
             <button
               onClick={() => openWalletAction('deposit')}
-              disabled={loading || !isAuthenticated}
+              disabled={loading || !isAuthenticated || !walletActionsEnabled}
+              title="Deposit is pending backend wallet ledger support"
               className="flex-1 md:flex-none bg-primary text-black px-8 py-3 rounded-xl font-black flex items-center justify-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
             >
               <Plus size={18} strokeWidth={3} />
@@ -100,7 +102,8 @@ export const WalletPage = () => {
             </button>
             <button
               onClick={() => openWalletAction('withdraw')}
-              disabled={loading || !isAuthenticated}
+              disabled={loading || !isAuthenticated || !walletActionsEnabled}
+              title="Withdrawal is pending backend wallet ledger support"
               className="flex-1 md:flex-none bg-zinc-900 text-white px-8 py-3 rounded-xl font-black border border-zinc-800 flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all disabled:opacity-60"
             >
               <ArrowUpRight size={18} />
@@ -113,6 +116,12 @@ export const WalletPage = () => {
       {error && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">
           {error}
+        </div>
+      )}
+
+      {!walletActionsEnabled && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-bold text-primary">
+          Wallet balance and transaction history are connected. Deposit, withdrawal, stake locking, and payouts are waiting for backend ledger support.
         </div>
       )}
 
