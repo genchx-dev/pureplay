@@ -1,3 +1,5 @@
+# pureplay-main/backend/apps/matchmaking/views.py
+
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
@@ -7,6 +9,10 @@ from rest_framework.response import Response
 
 from apps.matches.services import create_match, join_match
 from .queue import accept_open_match, cancel_queue_entry, ensure_queue_entry, list_open_matches
+
+# NEW imports for challenge system
+from .services import ChallengeService
+from .serializers import ChallengeSerializer
 
 
 def parse_stake(value):
@@ -135,3 +141,106 @@ def challenge_player_view(request):
     match = create_match(request.user.id, game_type=game_type, stake=stake)
     join_match(match.id, opponent_id)
     return Response({'status': 'matched', 'matchId': str(match.id)})
+
+
+# ========== NEW CHALLENGE SYSTEM VIEWS (pending invite flow) ==========
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def send_challenge(request):
+    """Send a pending challenge (invite) to another user."""
+    to_user_id = request.data.get('to_user_id')
+    stake_amount = request.data.get('stake_amount', 0)
+    game_type = request.data.get('game_type', 'tictactoe')
+
+    if not to_user_id:
+        return Response({'error': 'to_user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    User = get_user_model()
+    try:
+        to_user = User.objects.get(id=to_user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        challenge = ChallengeService.send_challenge(
+            from_user=request.user,
+            to_user=to_user,
+            stake_amount=stake_amount,
+            game_type=game_type,
+        )
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = ChallengeSerializer(challenge)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def accept_challenge(request, challenge_id):
+    """Accept a pending challenge, locks stake, creates match."""
+    try:
+        result = ChallengeService.accept_challenge(challenge_id, request.user)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except NotImplementedError as e:
+        return Response({'error': str(e)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    return Response({
+        'challenge': ChallengeSerializer(result['challenge']).data,
+        'match_id': result['match_id'],
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def decline_challenge(request, challenge_id):
+    """Decline a pending challenge."""
+    try:
+        challenge = ChallengeService.decline_challenge(challenge_id, request.user)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = ChallengeSerializer(challenge)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def incoming_challenges(request):
+    """List pending challenges received by the authenticated user."""
+    challenges = Challenge.objects.filter(
+        to_user=request.user,
+        status='pending'
+    ).select_related('from_user', 'to_user')
+    serializer = ChallengeSerializer(challenges, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def outgoing_challenges(request):
+    """List pending challenges sent by the authenticated user."""
+    challenges = Challenge.objects.filter(
+        from_user=request.user,
+        status='pending'
+    ).select_related('from_user', 'to_user')
+    serializer = ChallengeSerializer(challenges, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_challenge(request, challenge_id):
+    """Get details of a specific challenge (if user is sender or receiver)."""
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+    except Challenge.DoesNotExist:
+        return Response({'error': 'Challenge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if challenge.from_user != request.user and challenge.to_user != request.user:
+        return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ChallengeSerializer(challenge)
+    return Response(serializer.data)

@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'apps.auth_extras',
     'apps.matchmaking',
     'apps.tournaments',
+    'apps.rankings',   # <-- add this line
 ]
 
 MIDDLEWARE = [

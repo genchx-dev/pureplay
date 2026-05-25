@@ -1,3 +1,5 @@
+# pureplay-main/backend/apps/matches/services.py
+
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -6,24 +8,16 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.wallet.services import WalletService
+from apps.rankings.services import RankingService
+from apps.games.registry import get_engine   # <-- engine registry
 
 TURN_SECONDS = 10
-PLATFORM_FEE_PERCENT = 5
 
-WIN_LINES = (
-    (0, 1, 2),
-    (3, 4, 5),
-    (6, 7, 8),
-    (0, 3, 6),
-    (1, 4, 7),
-    (2, 5, 8),
-    (0, 4, 8),
-    (2, 4, 6),
-)
 
 def get_match_model():
     from .models import Match
     return Match
+
 
 def iso(dt):
     return dt.isoformat().replace('+00:00', 'Z')
@@ -33,65 +27,8 @@ def turn_deadline():
     return timezone.now() + timedelta(seconds=TURN_SECONDS)
 
 
-def create_match(player1_id, game_type='tictactoe', stake=0):
-    Match = get_match_model()
-    User = get_user_model()
-    player1 = User.objects.get(id=player1_id)
-    stake_decimal = Decimal(str(stake))
-    
-    with transaction.atomic():
-        match = Match.objects.create(
-            player1=player1,
-            status='waiting',
-            game_state={
-                'board': [None] * 9,
-                'currentPlayer': 'X',
-                'players': {'X': player1.id},
-                'turnEndsAt': None,
-                'stake': str(stake_decimal),
-                'gameType': game_type,
-            },
-        )
-        
-        # Deduct stake
-        if stake_decimal > 0:
-            WalletService.lock_stake(player1, stake_decimal, match.id)
-            
-    return match
-
-def join_match(match_id, player2_id):
-    Match = get_match_model()
-    User = get_user_model()
-    with transaction.atomic():
-        match = Match.objects.select_for_update().get(id=match_id)
-        if match.status != 'waiting':
-            raise ValueError('Match not available')
-        if match.player1_id == player2_id:
-            raise ValueError('Cannot join your own match')
-
-        player2 = User.objects.get(id=player2_id)
-        stake = Decimal(match.game_state.get('stake', '0'))
-        
-        # Deduct stake for player 2
-        if stake > 0:
-            WalletService.lock_stake(player2, stake, match.id)
-
-        deadline = turn_deadline()
-        match.player2 = player2
-        match.status = 'active'
-        match.current_turn = match.player1
-        match.game_state = {
-            **(match.game_state or {}),
-            'board': (match.game_state or {}).get('board') or [None] * 9,
-            'currentPlayer': 'X',
-            'players': {'X': match.player1_id, 'O': player2.id},
-            'turnEndsAt': iso(deadline),
-        }
-        match.save(update_fields=['player2', 'status', 'current_turn', 'game_state', 'updated_at'])
-        return match
-
-
 def player_symbol(match, user_id):
+    """Return 'X' or 'O' for a given user in the match."""
     players = (match.game_state or {}).get('players') or {}
     for symbol, player_id in players.items():
         if str(player_id) == str(user_id):
@@ -99,22 +36,102 @@ def player_symbol(match, user_id):
     return None
 
 
-def check_winner(board):
-    for a, b, c in WIN_LINES:
-        if board[a] and board[a] == board[b] == board[c]:
-            return board[a]
-    if all(cell is not None for cell in board):
-        return 'draw'
-    return None
+# =========================
+# MATCH CREATION
+# =========================
 
-
-def make_move(match_id, player_id, position):
+def create_match(player1_id, game_type='tictactoe', stake=0):
     Match = get_match_model()
-    if not isinstance(position, int) or position < 0 or position > 8:
-        raise ValueError('Invalid move')
+    User = get_user_model()
+    player1 = User.objects.get(id=player1_id)
+    stake_decimal = Decimal(str(stake))
+
+    engine = get_engine(game_type)
+    # initial state without player2 (empty string for now)
+    initial_state = engine.get_initial_state(str(player1_id), '', stake=stake_decimal)
+    # Add turnEndsAt later, after player2 joins
+    initial_state['turnEndsAt'] = None
+
+    with transaction.atomic():
+        match = Match.objects.create(
+            player1=player1,
+            status='waiting',
+            game_state=initial_state,
+        )
+
+        # Lock stake immediately
+        if stake_decimal > 0:
+            WalletService.lock_stake(player1, stake_decimal, match.id)
+
+    return match
+
+
+# =========================
+# JOIN MATCH (improved – uses engine to find second symbol)
+# =========================
+
+def join_match(match_id, player2_id):
+    Match = get_match_model()
+    User = get_user_model()
+
+    with transaction.atomic():
+        match = Match.objects.select_for_update().get(id=match_id)
+
+        if match.status != 'waiting':
+            raise ValueError('Match not available')
+
+        if match.player1_id == player2_id:
+            raise ValueError('Cannot join your own match')
+
+        player2 = User.objects.get(id=player2_id)
+        stake = Decimal(match.game_state.get('stake', '0'))
+
+        # Lock stake for player 2
+        if stake > 0:
+            WalletService.lock_stake(player2, stake, match.id)
+
+        # Get engine for this game type
+        game_type = match.game_state.get('gameType', 'tictactoe')
+        engine = get_engine(game_type)
+
+        state = match.game_state
+        players = state.get('players', {})
+
+        # Determine the symbol for player2: find the missing one from {'X','O'}
+        # For other games, the engine might have different symbols.
+        # We assume two-player games have exactly two symbols.
+        # We'll get the existing symbol from the first player.
+        existing_symbols = set(players.keys())
+        if len(existing_symbols) == 1:
+            first_symbol = next(iter(existing_symbols))
+            second_symbol = engine.get_opponent_symbol(first_symbol)
+            players[second_symbol] = str(player2.id)
+        else:
+            raise ValueError("Match already has two players")
+
+        state['players'] = players
+        deadline = turn_deadline()
+        state['turnEndsAt'] = iso(deadline)
+
+        match.player2 = player2
+        match.status = 'active'
+        match.current_turn = match.player1   # first player goes first
+        match.game_state = state
+
+        match.save(update_fields=['player2', 'status', 'current_turn', 'game_state', 'updated_at'])
+
+        return match
+
+# =========================
+# MOVE + AUTO SETTLEMENT (USING ENGINE)
+# =========================
+
+def make_move(match_id, player_id, move):
+    Match = get_match_model()
 
     with transaction.atomic():
         match = Match.objects.select_for_update().select_related('player1', 'player2').get(id=match_id)
+
         if match.status != 'active':
             raise ValueError('Match not active')
 
@@ -122,75 +139,129 @@ def make_move(match_id, player_id, position):
         if not symbol:
             raise ValueError('You are not a player in this match')
 
-        state = match.game_state or {}
-        board = list(state.get('board') or [None] * 9)
-        if state.get('currentPlayer') != symbol:
-            raise ValueError('Not your turn')
-        if board[position] is not None:
-            raise ValueError('Cell already taken')
+        state = match.game_state.copy()
+        game_type = state.get('gameType', 'tictactoe')
+        engine = get_engine(game_type)
 
-        board[position] = symbol
-        result = check_winner(board)
-        if result:
-            state['board'] = board
-            state['turnEndsAt'] = None
-            stake = Decimal(state.get('stake', '0'))
-            
-            if result == 'draw':
-                state['winner'] = 'draw'
-                # Refund both players
+        # Validate move
+        valid, error = engine.validate_move(state, symbol, move)
+        if not valid:
+            raise ValueError(error)
+
+        # Apply move
+        new_state = engine.apply_move(state, symbol, move)
+
+        # Check game over
+        is_over, winner_symbol, _ = engine.check_game_over(new_state)
+
+        stake = Decimal(state.get('stake', '0'))
+
+        # =========================
+        # GAME OVER
+        # =========================
+        if is_over:
+            new_state['turnEndsAt'] = None
+
+            if winner_symbol == 'draw':
+                new_state['winner'] = 'draw'
+
                 if stake > 0:
-                    WalletService.refund_stake(match.player1, stake, match.id, reason="Match Drawn")
-                    WalletService.refund_stake(match.player2, stake, match.id, reason="Match Drawn")
+                    WalletService.refund_match_stakes(
+                        match.player1,
+                        match.player2,
+                        stake,
+                        match.id,
+                        reason="Match Draw"
+                    )
+
+                # Ranking update for draw
+                RankingService.update_after_match(match.id, None, None, is_draw=True)
+
             else:
-                state['winner'] = result
-                winner_player_id = state.get('players', {}).get(result)
-                match.winner_id = winner_player_id
-                
-                # Payout winner
+                # winner_symbol is e.g., 'X' or 'O'
+                new_state['winner'] = winner_symbol
+                winner_id = new_state.get('players', {}).get(winner_symbol)
+                match.winner_id = winner_id
+
+                winner = match.player1 if str(match.player1_id) == str(winner_id) else match.player2
+                loser = match.player2 if winner == match.player1 else match.player1
+
                 if stake > 0:
-                    total_pot = stake * 2
-                    fee = total_pot * Decimal(str(PLATFORM_FEE_PERCENT / 100))
-                    payout_amount = total_pot - fee
-                    winner = match.player1 if match.player1_id == winner_player_id else match.player2
-                    WalletService.payout_win(winner, payout_amount, match.id)
-            
+                    WalletService.settle_match(
+                        winner=winner,
+                        loser=loser,
+                        stake_amount=stake,
+                        match_id=match.id
+                    )
+
+                # Ranking update for win
+                RankingService.update_after_match(match.id, winner, loser)
+
             match.status = 'completed'
-            match.game_state = state
-            match.save(update_fields=['winner', 'status', 'game_state', 'updated_at'])
+            match.game_state = new_state
+            match.save(update_fields=['winner_id', 'status', 'game_state', 'updated_at'])
+
             return match, 'GAME_OVER'
 
-        next_player = 'O' if symbol == 'X' else 'X'
-        state['board'] = board
-        state['currentPlayer'] = next_player
-        state['turnEndsAt'] = iso(turn_deadline())
-        match.current_turn_id = state.get('players', {}).get(next_player)
-        match.game_state = state
+        # =========================
+        # CONTINUE GAME
+        # =========================
+
+        # Set turn deadline for next player
+        new_state['turnEndsAt'] = iso(turn_deadline())
+
+        # Determine whose turn it is (engine may have set currentPlayer)
+        current_player_symbol = engine.get_current_player(new_state)
+        if current_player_symbol == 'X':
+            match.current_turn = match.player1
+        else:
+            match.current_turn = match.player2
+
+        match.game_state = new_state
         match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
+
         return match, 'MOVE_MADE'
 
 
+# =========================
+# TURN EXPIRY (USING ENGINE)
+# =========================
+
 def skip_expired_turn(match_id):
     Match = get_match_model()
+
     with transaction.atomic():
         match = Match.objects.select_for_update().get(id=match_id)
+
         if match.status != 'active':
             return None
 
         state = match.game_state or {}
         turn_ends_at = state.get('turnEndsAt')
+
         if not turn_ends_at:
             return None
 
         deadline = datetime.fromisoformat(turn_ends_at.replace('Z', '+00:00'))
+
         if timezone.now() < deadline:
             return None
 
-        skipped_player = state.get('currentPlayer', 'X')
-        next_player = 'O' if skipped_player == 'X' else 'X'
+        # Use engine to get opponent symbol
+        engine = get_engine(state.get('gameType', 'tictactoe'))
+        current = engine.get_current_player(state)
+        next_player = engine.get_opponent_symbol(current)   # ✅ generic
+
         state['currentPlayer'] = next_player
         state['turnEndsAt'] = iso(turn_deadline())
-        match.current_turn_id = state.get('players', {}).get(next_player)
+
+        # Update match.current_turn based on symbol
+        if next_player == 'X':
+            match.current_turn = match.player1
+        else:
+            match.current_turn = match.player2
+
         match.game_state = state
         match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
-        return match, skipped_player
+
+        return match, current
