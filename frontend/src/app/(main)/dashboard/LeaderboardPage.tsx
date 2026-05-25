@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Trophy, 
   TrendingUp, 
@@ -8,6 +8,8 @@ import {
 import { useRankingStore } from '../../../store/ranking.store';
 import { useAuthStore } from '../../../store/auth.store';
 import { getTierByXp, TIERS } from '../../../utils/tier';
+import type { LeaderboardPlayer } from '../../../types/ranking.types';
+import { PlayerProfileModal } from './PlayerProfileModal';
 
 // Import SVG Badges
 import woodIcon from '../../../assets/games/tiericon/wood.svg';
@@ -88,9 +90,10 @@ const winRate = (wins: number, losses: number, draws = 0) => {
 const ROW_GRID = 'grid grid-cols-[2rem_1fr_3rem_5rem] sm:grid-cols-[2.5rem_1fr_4.5rem_4rem_5.5rem] gap-2 items-center px-3 sm:px-4';
 const HEADER_GRID = `${ROW_GRID} py-2 border-b border-zinc-800 bg-zinc-900/50`;
 
-export const LeaderboardPage = () => {
+export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) => {
   const { leaderboard, loading, fetchLeaderboard } = useRankingStore();
   const { user } = useAuthStore();
+  const [selectedPlayer, setSelectedPlayer] = useState<LeaderboardPlayer | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -120,6 +123,19 @@ export const LeaderboardPage = () => {
 
   return (
     <div className="px-3 sm:px-4 pb-24 pt-6 space-y-6 sm:space-y-8 max-w-2xl mx-auto w-full">
+      {/* Player profile modal */}
+      {selectedPlayer && (
+        <PlayerProfileModal
+          player={selectedPlayer}
+          isMe={selectedPlayer.username === user?.username}
+          onClose={() => setSelectedPlayer(null)}
+          onChallenge={() => {
+            setSelectedPlayer(null);
+            onChallenge?.();
+          }}
+        />
+      )}
+
 
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -200,7 +216,8 @@ export const LeaderboardPage = () => {
               return (
                 <div
                   key={player.username}
-                  className={`${ROW_GRID} py-3 transition-colors hover:bg-white/[0.02] ${isMe ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                  onClick={() => setSelectedPlayer(player)}
+                  className={`${ROW_GRID} py-3 transition-colors hover:bg-white/[0.04] cursor-pointer active:bg-white/[0.06] ${isMe ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                 >
                   {/* Rank */}
                   <div className={`text-sm font-black ${isTop3 ? 'text-primary' : 'text-zinc-600'}`}>
@@ -246,7 +263,10 @@ export const LeaderboardPage = () => {
 
             {/* "My Rank" footer row if user is outside top 10 */}
             {showUserRow && userEntry && (
-              <div className={`${ROW_GRID} py-3 bg-zinc-950 border-t border-t-zinc-700 shadow-[inset_0_4px_12px_rgba(0,0,0,0.5)] border-l-2 border-l-primary`}>
+              <div
+                onClick={() => setSelectedPlayer(userEntry)}
+                className={`${ROW_GRID} py-3 bg-zinc-950 border-t border-t-zinc-700 shadow-[inset_0_4px_12px_rgba(0,0,0,0.5)] border-l-2 border-l-primary cursor-pointer hover:bg-zinc-900/40 transition-colors`}
+              >
                 <div className="text-sm font-black text-zinc-400">{userEntry.rank}</div>
 
                 <div className="flex flex-col min-w-0">

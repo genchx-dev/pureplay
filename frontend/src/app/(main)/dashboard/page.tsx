@@ -129,7 +129,7 @@ export const HomePage = () => {
       case 'home': return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
       case 'challenge': return <ChallengePage />;
       case 'tournament': return <TournamentPage />;
-      case 'leaderboard': return <LeaderboardPage />;
+      case 'leaderboard': return <LeaderboardPage onChallenge={() => setActiveTab('challenge')} />;
       case 'me': return <MePage />;
       default: return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
     }
