@@ -19,7 +19,7 @@ This document tracks all outstanding work to bridge the current React frontend w
 | 7 | Wallet | Real wallet schema + staking engine (Done) |
 | 8 | Challenges | Challenge lifecycle API + SMS notifications (API Done, SMS Pending) |
 | 9 | Tournaments | Tournament schema + bracket logic (Done) |
-| 10 | Tic Tac Toe | Best of Three Rounds & Real Usernames (New) |
+| 10 | Tic Tac Toe | Best of Three Rounds & Real Usernames (Done) |
 | 11 | Games | Game engine abstraction + new games (Abstraction Done, new games Pending) |
 | 12 | Hardening | Redis, PostgreSQL, production settings |
 
@@ -151,12 +151,12 @@ Tic Tac Toe is the only fully playable game. Other games are in planning.
 To transition Tic Tac Toe from a single-round game to a premium "best of three" competitive match, and to display real player usernames instead of generic placeholders.
 
 ### 🧑‍💻 Backend Partner Tasks
-- [ ] **State Schema Updates**:
+- [x] **State Schema Updates**:
   - Update `Match` model game state JSON schema to track:
     - `current_round` (Integer: 1, 2, or 3).
     - `round_scores` (Dict mapping player symbols/user IDs to wins: e.g., `{"X": 0, "O": 0}`).
     - `round_history` (Array of round outcomes: e.g., `[{"round": 1, "winner": "X", "reason": "three_in_row"}]`).
-- [ ] **Round Transitions in `make_move()`**:
+- [x] **Round Transitions in `make_move()`**:
   - In `apps/matches/services.py`, modify move application logic:
     - When a player scores 3-in-a-row or a draw occurs:
       - Do NOT mark the match as completed immediately if no player has reached 2 wins.
@@ -166,21 +166,21 @@ To transition Tic Tac Toe from a single-round game to a premium "best of three" 
       - Update `turnEndsAt` for the new round.
       - Broadcast a new socket event type `ROUND_OVER` containing the winning player of the round, current scores, and a countdown to the next round.
       - If a player reaches 2 wins (or after 3 rounds if ties/draws happen), transition the Match status to `completed`, invoke `WalletService.settle_match()` with the final winner/loser, update rankings, and broadcast `GAME_OVER`.
-- [ ] **Serialize Real Usernames**:
+- [x] **Serialize Real Usernames**:
   - Update the `MATCH_START` WebSocket payload and `GET /api/matches/{id}/` endpoint to include:
     - `player1_username` and `player2_username` (retrieved from `player1` and `player2` models).
     - User profiles metadata (e.g. tier, rank/MMR).
 
 ### 🎨 Frontend (USER) Tasks
-- [ ] **Round Scoreboard UI**:
+- [x] **Round Scoreboard UI**:
   - In `frontend/src/app/(main)/game/page.tsx`, add a visual round indicator showing scores (e.g., active/inactive dots/stars: `● ● ○` vs `○ ○ ○`).
-- [ ] **WebSocket Message Handlers**:
+- [x] **WebSocket Message Handlers**:
   - In `frontend/src/services/websocket/handlers.ts`, add support for `ROUND_OVER` WebSocket event.
   - Track `currentRound` and `roundScores` in the `useGameStore`.
-- [ ] **Micro-Animations & Transitions**:
+- [x] **Micro-Animations & Transitions**:
   - Implement a premium round-win animation (e.g., overlay banner "Round 1 Won by YOU!", "Prepare for Round 2...") using CSS transitions/animations when a `ROUND_OVER` event is received.
   - Introduce a delay/countdown timer before resetting the board visually to let the user enjoy/experience the win animation.
-- [ ] **Display Real Usernames**:
+- [x] **Display Real Usernames**:
   - Bind `player1_username` and `player2_username` from the websocket connection to the player cards on the game page instead of showing generic "Player 1" and "Player 2" or "YOU" / "OPPONENT".
 
 ---
