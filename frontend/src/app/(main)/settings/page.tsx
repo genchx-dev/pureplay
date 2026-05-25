@@ -12,16 +12,6 @@ import {
   TrendingUp,
   Swords,
   Minus,
-  Trees,
-  Coins,
-  Award,
-  Shield,
-  Star,
-  Crown,
-  Gem,
-  Zap,
-  Cpu,
-  Flame,
   Terminal,
   ChevronDown,
   ChevronUp,
@@ -30,19 +20,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useRankingStore } from '../../../store/ranking.store';
 import { getTierByXp, getNextTier } from '../../../utils/tier';
-
-const TIER_ICONS = {
-  Trees,
-  Coins,
-  Award,
-  Shield,
-  Star,
-  Crown,
-  Gem,
-  Zap,
-  Cpu,
-  Flame,
-};
+import { TIER_BADGES } from '../dashboard/LeaderboardPage';
 
 export const MePage = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -93,7 +71,7 @@ export const MePage = () => {
     xpRemaining = nextTier.minXp - xp;
   }
 
-  const CurrentTierIcon = TIER_ICONS[currentTier.iconName as keyof typeof TIER_ICONS] || Award;
+  const badgeUrl = TIER_BADGES[currentTier.name.toLowerCase()] || TIER_BADGES.bronze;
 
   return (
     <div className="px-4 pb-24 pt-6 space-y-6 max-w-2xl mx-auto">
@@ -102,14 +80,14 @@ export const MePage = () => {
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
 
         <div className="relative flex items-start gap-4 mb-6">
-          <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center border-4 border-zinc-700 text-primary shrink-0 overflow-hidden relative">
-            <CurrentTierIcon size={36} className={`${currentTier.color}`} />
+          <div className="w-20 h-20 bg-zinc-950/80 rounded-full flex items-center justify-center border border-zinc-850 shrink-0 overflow-hidden relative p-1 shadow-lg shadow-black/30">
+            <img src={badgeUrl} alt={currentTier.name} className="w-16 h-16 object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-black text-xl mb-1 text-white truncate">{user?.username || 'Gamer'}</h2>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className={`inline-flex items-center gap-1 ${currentTier.bg} ${currentTier.color} text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter border ${currentTier.border}`}>
-                <CurrentTierIcon size={10} />
+              <span className={`inline-flex items-center gap-1.5 ${currentTier.bg} ${currentTier.color} text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-tighter border ${currentTier.border}`}>
+                <img src={badgeUrl} alt={currentTier.name} className="w-3.5 h-3.5 object-contain" />
                 {currentTier.name} Tier
               </span>
               <span className="text-zinc-500 text-xs font-bold uppercase">#{user?.rank || 10} Rank</span>

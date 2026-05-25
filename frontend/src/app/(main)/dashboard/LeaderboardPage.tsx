@@ -3,33 +3,35 @@ import {
   Trophy, 
   TrendingUp, 
   Medal, 
-  Trees, 
-  Coins, 
-  Award, 
-  Shield, 
-  Star, 
-  Crown, 
-  Gem, 
-  Zap, 
-  Cpu, 
-  Flame,
   Loader2
 } from 'lucide-react';
 import { useRankingStore } from '../../../store/ranking.store';
 import { useAuthStore } from '../../../store/auth.store';
 import { getTierByXp, TIERS } from '../../../utils/tier';
 
-const TIER_ICONS = {
-  Trees,
-  Coins,
-  Award,
-  Shield,
-  Star,
-  Crown,
-  Gem,
-  Zap,
-  Cpu,
-  Flame,
+// Import SVG Badges
+import woodIcon from '../../../assets/games/tiericon/wood.svg';
+import copperIcon from '../../../assets/games/tiericon/copper.svg';
+import bronzeIcon from '../../../assets/games/tiericon/bronze.svg';
+import ironIcon from '../../../assets/games/tiericon/iron.svg';
+import silverIcon from '../../../assets/games/tiericon/silver.svg';
+import goldIcon from '../../../assets/games/tiericon/gold.svg';
+import diamondIcon from '../../../assets/games/tiericon/diamond.svg';
+import platinumIcon from '../../../assets/games/tiericon/platinum.svg';
+import titaniumIcon from '../../../assets/games/tiericon/titanium.svg';
+import rubyIcon from '../../../assets/games/tiericon/ruby.svg';
+
+export const TIER_BADGES: Record<string, string> = {
+  wood: woodIcon,
+  copper: copperIcon,
+  bronze: bronzeIcon,
+  iron: ironIcon,
+  silver: silverIcon,
+  gold: goldIcon,
+  diamond: diamondIcon,
+  platinum: platinumIcon,
+  titanium: titaniumIcon,
+  ruby: rubyIcon,
 };
 
 export const TierBadge = ({ tierName, xp }: { tierName?: string; xp?: number }) => {
@@ -37,11 +39,11 @@ export const TierBadge = ({ tierName, xp }: { tierName?: string; xp?: number }) 
     ? getTierByXp(xp) 
     : TIERS.find(t => t.name.toLowerCase() === tierName?.toLowerCase()) || TIERS[0];
     
-  const IconComponent = TIER_ICONS[tierConfig.iconName as keyof typeof TIER_ICONS] || Award;
+  const badgeUrl = TIER_BADGES[tierConfig.name.toLowerCase()] || bronzeIcon;
   
   return (
-    <div className={`inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${tierConfig.bg} ${tierConfig.color} border ${tierConfig.border}`}>
-      <IconComponent size={8} />
+    <div className={`inline-flex w-fit items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${tierConfig.bg} ${tierConfig.color} border ${tierConfig.border}`}>
+      <img src={badgeUrl} alt={tierConfig.name} className="w-3.5 h-3.5 object-contain" />
       <span>{tierConfig.name}</span>
     </div>
   );
@@ -73,9 +75,9 @@ export const LeaderboardPage = () => {
   const third = top3[2];
 
   const podiumData = [
-    ...(second ? [{ player: second, label: '2nd', height: 'h-24', ring: 'ring-2 ring-zinc-500/60', avatarBg: 'bg-zinc-800 text-zinc-300', textCol: 'text-zinc-300', badgeIdx: 1 }] : []),
-    ...(first ? [{ player: first, label: '1st', height: 'h-32', ring: 'ring-4 ring-primary shadow-[0_0_24px_rgba(255,204,51,0.4)]', avatarBg: 'bg-primary text-black', textCol: 'text-primary', badgeIdx: 0 }] : []),
-    ...(third ? [{ player: third, label: '3rd', height: 'h-20', ring: 'ring-2 ring-amber-700/60', avatarBg: 'bg-zinc-800 text-amber-600', textCol: 'text-amber-600', badgeIdx: 2 }] : [])
+    ...(second ? [{ player: second, label: '2nd', height: 'h-24', ring: 'ring-2 ring-zinc-500/60', badgeIdx: 1 }] : []),
+    ...(first ? [{ player: first, label: '1st', height: 'h-32', ring: 'ring-4 ring-primary shadow-[0_0_24px_rgba(255,204,51,0.3)]', badgeIdx: 0 }] : []),
+    ...(third ? [{ player: third, label: '3rd', height: 'h-20', ring: 'ring-2 ring-amber-700/60', badgeIdx: 2 }] : [])
   ];
 
   if (loading && leaderboard.length === 0) {
@@ -106,15 +108,17 @@ export const LeaderboardPage = () => {
       {podiumData.length > 0 && (
         <div className="bg-gradient-to-b from-zinc-900 to-black rounded-3xl border border-zinc-800 p-6">
           <div className="flex items-end justify-center gap-3">
-            {podiumData.map(({ player, label, height, ring, avatarBg, textCol, badgeIdx }) => {
+            {podiumData.map(({ player, label, height, ring, badgeIdx }) => {
+              const badgeUrl = TIER_BADGES[player.tier.toLowerCase()] || bronzeIcon;
               return (
                 <div key={player.username} className="flex flex-col items-center gap-2 flex-1">
-                  {/* Avatar */}
-                  <div className={`w-14 h-14 rounded-full ${avatarBg} ${ring} flex items-center justify-center relative`}>
-                    {badgeIdx === 0 ? (
-                      <Trophy size={22} className="text-black" />
-                    ) : (
-                      <span className="text-sm font-black">{label[0]}</span>
+                  {/* Avatar (Tier SVG Badge) */}
+                  <div className={`w-16 h-16 rounded-full bg-zinc-950/80 border border-zinc-850 flex items-center justify-center relative p-1 shadow-lg ${ring}`}>
+                    <img src={badgeUrl} alt={player.tier} className="w-11 h-11 object-contain" />
+                    {badgeIdx === 0 && (
+                      <div className="absolute -top-2 -right-1 bg-primary text-black p-0.5 rounded-full border border-zinc-950 shadow-md">
+                        <Trophy size={10} strokeWidth={2.5} />
+                      </div>
                     )}
                   </div>
                   {/* Name + tier */}
@@ -126,7 +130,7 @@ export const LeaderboardPage = () => {
                   </div>
                   {/* Podium block */}
                   <div className={`w-full ${height} rounded-t-2xl flex flex-col items-center justify-start pt-3 gap-1 ${badgeIdx === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-zinc-900/60 border border-zinc-800/40'}`}>
-                    <span className={`text-sm font-black ${textCol}`}>{label}</span>
+                    <span className={`text-sm font-black ${badgeIdx === 0 ? 'text-primary' : badgeIdx === 1 ? 'text-zinc-300' : 'text-amber-600'}`}>{label}</span>
                     <span className="text-[9px] font-black text-zinc-400 font-mono">NGN {player.earnings.toLocaleString()}</span>
                   </div>
                 </div>
