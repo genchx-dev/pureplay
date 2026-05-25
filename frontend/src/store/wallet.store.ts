@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { walletApi } from '../services/api/wallet.api';
 import type { BankDetails, Transaction } from '../types/wallet.types';
+import { useAuthStore } from './auth.store';
 
 type WalletTransactionResponse = Partial<Transaction> & {
   transaction_type?: Transaction['type'];
@@ -28,13 +29,27 @@ interface WalletState {
   withdraw: (amount: number, bankDetails: BankDetails) => Promise<void>;
 }
 
-export const useWalletStore = create<WalletState>((set) => ({
+export const useWalletStore = create<WalletState>((set, get) => ({
   balance: 0,
   transactions: [],
   loading: false,
   error: null,
+  
   fetchBalance: async () => {
     set({ loading: true });
+    
+    // Support demo account override to 1000 NGN
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && currentUser.username === 'demo') {
+      const storedDemoBal = localStorage.getItem('demo_balance');
+      const bal = storedDemoBal ? Number(storedDemoBal) : 1000;
+      if (!storedDemoBal) {
+        localStorage.setItem('demo_balance', '1000');
+      }
+      set({ balance: bal, loading: false, error: null });
+      return;
+    }
+
     try {
       const { data } = await walletApi.getBalance();
       set({ balance: Number(data.balance), loading: false, error: null });
@@ -43,8 +58,19 @@ export const useWalletStore = create<WalletState>((set) => ({
       set({ loading: false, error: 'Could not load wallet balance' });
     }
   },
+  
   fetchTransactions: async () => {
     set({ loading: true });
+    
+    // Support demo account override
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && currentUser.username === 'demo') {
+      const storedTxs = localStorage.getItem('demo_transactions');
+      const txs = storedTxs ? JSON.parse(storedTxs) : [];
+      set({ transactions: txs, loading: false, error: null });
+      return;
+    }
+
     try {
       const { data } = await walletApi.getTransactions();
       set({ transactions: data.map((transaction) => normalizeTransaction(transaction as WalletTransactionResponse)), loading: false, error: null });
@@ -53,8 +79,32 @@ export const useWalletStore = create<WalletState>((set) => ({
       set({ loading: false, error: 'Could not load transaction history' });
     }
   },
+  
   deposit: async (amount) => {
     set({ loading: true });
+    
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && currentUser.username === 'demo') {
+      const newBal = get().balance + amount;
+      const newTx: Transaction = {
+        id: `demo_tx_${Date.now()}`,
+        type: 'deposit',
+        amount,
+        date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+        createdAt: new Date().toISOString(),
+        status: 'completed',
+        description: 'Mock Deposit (Demo)',
+      };
+      
+      set((s) => ({
+        balance: newBal,
+        transactions: [newTx, ...s.transactions],
+        loading: false,
+        error: null,
+      }));
+      return;
+    }
+
     try {
       const { data } = await walletApi.deposit(amount);
       set({ balance: Number(data.balance), loading: false, error: null });
@@ -65,8 +115,37 @@ export const useWalletStore = create<WalletState>((set) => ({
       throw error;
     }
   },
+  
   withdraw: async (amount, bankDetails) => {
     set({ loading: true });
+    
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && currentUser.username === 'demo') {
+      if (get().balance < amount) {
+        set({ loading: false, error: 'Insufficient balance' });
+        throw new Error('Insufficient balance');
+      }
+      
+      const newBal = get().balance - amount;
+      const newTx: Transaction = {
+        id: `demo_tx_${Date.now()}`,
+        type: 'withdrawal',
+        amount: -amount,
+        date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+        createdAt: new Date().toISOString(),
+        status: 'completed',
+        description: `Mock Withdrawal to ${bankDetails.bankName || 'Bank'}`,
+      };
+      
+      set((s) => ({
+        balance: newBal,
+        transactions: [newTx, ...s.transactions],
+        loading: false,
+        error: null,
+      }));
+      return;
+    }
+
     try {
       const { data } = await walletApi.withdraw(amount, bankDetails);
       set({ balance: Number(data.balance), loading: false, error: null });
@@ -78,3 +157,12 @@ export const useWalletStore = create<WalletState>((set) => ({
     }
   },
 }));
+
+// Automatically sync demo user states to localStorage
+useWalletStore.subscribe((state) => {
+  const user = useAuthStore.getState().user;
+  if (user && user.username === 'demo') {
+    localStorage.setItem('demo_balance', String(state.balance));
+    localStorage.setItem('demo_transactions', JSON.stringify(state.transactions));
+  }
+});

@@ -3,6 +3,7 @@ import { rankingApi } from '../services/api/ranking.api';
 import type { LeaderboardPlayer, MatchHistoryRecord } from '../types/ranking.types';
 import { useAuthStore } from './auth.store';
 import { getTierByXp } from '../utils/tier';
+import { useWalletStore } from './wallet.store';
 
 const MOCK_LEADERBOARD: LeaderboardPlayer[] = [
   { rank: 1, username: 'QuantumKing', tier: 'Ruby', xp: 1245000, wins: 245, losses: 35, draws: 15, earnings: 45200 },
@@ -282,6 +283,12 @@ export const useRankingStore = create<RankingState>((set, get) => ({
   resetStats: (username) => {
     localStorage.removeItem(`matches_${username}`);
     localStorage.setItem(`xp_${username}`, '5000'); // Reset to Bronze entry
+
+    if (username === 'demo') {
+      localStorage.setItem('demo_balance', '1000');
+      localStorage.setItem('demo_transactions', '[]');
+      useWalletStore.setState({ balance: 1000, transactions: [] });
+    }
 
     const authUser = useAuthStore.getState().user;
     if (authUser && authUser.username === username) {
