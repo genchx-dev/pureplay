@@ -89,17 +89,17 @@ Now:
 
 Now tournament becomes clean:
 
-Round	Players Remaining
-Round 1	1,024
-Round 2	512
-Round 3	256
-Round 4	128
-Round 5	64
-Round 6	32
-Round 7	16
-Quarterfinals	8
-Semifinals	4
-Finals	2
+Round Players Remaining
+Round 1 1,024
+Round 2 512
+Round 3 256
+Round 4 128
+Round 5 64
+Round 6 32
+Round 7 16
+Quarterfinals 8
+Semifinals 4
+Finals 2
 📌 STEP 5 — FINAL WINNER
 
 Final match determines:
@@ -127,13 +127,13 @@ Opponent strength (optional)
 Example prize pool:
 
 ₦1,000,000
-Position	Amount
-🥇 1st	₦350,000
-🥈 2nd	₦200,000
-🥉 3rd	₦120,000
-4th	₦80,000
-5th–6th	₦50,000 each
-7th–10th	₦25,000 each
+Position Amount
+🥇 1st ₦350,000
+🥈 2nd ₦200,000
+🥉 3rd ₦120,000
+4th ₦80,000
+5th–6th ₦50,000 each
+7th–10th ₦25,000 each
 🎮 MATCH FORMAT
 
 Matches can be:
@@ -144,18 +144,27 @@ Meaning:
 
 first to 2 wins advances
 🧠 BENEFITS OF KNOCKOUT
-Benefit	Reason
-Fast tournaments	simple elimination
-High intensity	one loss = danger
-Lower server load	fewer matches
-Easier to understand	familiar format
+Benefit Reason
+Fast tournaments simple elimination
+High intensity one loss = danger
+Lower server load fewer matches
+Easier to understand familiar format
 ❌ WEAKNESSES
-Weakness	Reason
-Early elimination frustration	lose once and out
-Less fair	strong players can meet early
-Lower engagement time	fewer matches per user
+Weakness Reason
+Early elimination frustration lose once and out
+Less fair strong players can meet early
+Lower engagement time fewer matches per user
 🧠 2. SWISS HYBRID TOURNAMENT SYSTEM
 🧠 WHAT IT IS
+
+for prze distribution
+Position,Percentage,
+1st, 40%,
+2nd, 25%,
+3rd, 15%,
+4th, 12%,
+5th, 8%,
+Total,100%,
 
 Swiss Hybrid combines:
 
@@ -209,9 +218,9 @@ Example:
 3–0 players face other 3–0 players
 2–1 players face other 2–1 players
 📊 SCORING SYSTEM
-Result	Points
-Match win	+3
-Match loss	0
+Result Points
+Match win +3
+Match loss 0
 
 Optional:
 
@@ -277,10 +286,10 @@ Example:
 🎁 PLAYER POOL
 ₦1,800,000
 💵 DISTRIBUTION
-Allocation	Amount
-Swiss rewards	₦360,000
-Transition rewards	₦180,000
-Knockout prizes	₦1,260,000
+Allocation Amount
+Swiss rewards ₦360,000
+Transition rewards ₦180,000
+Knockout prizes ₦1,260,000
 🎯 WHY SWISS IS POWERFUL
 
 Swiss solves:
@@ -293,25 +302,25 @@ Because:
 
 everyone plays multiple matches
 🧠 BENEFITS OF SWISS HYBRID
-Benefit	Reason
-Fairer competition	more matches
-Higher retention	players stay longer
-More engagement	multiple games
-Better ranking accuracy	skill clearer
+Benefit Reason
+Fairer competition more matches
+Higher retention players stay longer
+More engagement multiple games
+Better ranking accuracy skill clearer
 ❌ WEAKNESSES
-Weakness	Reason
-More complex backend	ranking logic
-More server load	more matches
-Longer tournament duration	multiple rounds
+Weakness Reason
+More complex backend ranking logic
+More server load more matches
+Longer tournament duration multiple rounds
 ⚖️ DIFFERENCE BETWEEN BOTH SYSTEMS
-Feature	Knockout	Swiss Hybrid
-Elimination	Immediate	Delayed
-Fairness	Medium	High
-Match count	Lower	Higher
-Server cost	Lower	Higher
-Intensity	Very high	Strategic
-User retention	Lower	Higher
-Complexity	Simple	Advanced
+Feature Knockout Swiss Hybrid
+Elimination Immediate Delayed
+Fairness Medium High
+Match count Lower Higher
+Server cost Lower Higher
+Intensity Very high Strategic
+User retention Lower Higher
+Complexity Simple Advanced
 🧠 WHY YOUR PLATFORM SHOULD HAVE BOTH
 
 Because users enjoy:
@@ -319,9 +328,9 @@ Because users enjoy:
 different competition styles
 different emotional experiences
 🎯 RECOMMENDED USE CASES
-Tournament Type	Best For
-Knockout	fast/high-risk events
-Swiss Hybrid	major weekly tournaments
+Tournament Type Best For
+Knockout fast/high-risk events
+Swiss Hybrid major weekly tournaments
 🔥 FINAL PLATFORM PHILOSOPHY
 
 Your system is designed around:

@@ -1,13 +1,15 @@
 OUR OFFICIAL RANK SYSTEM
-Tier	XP Range
-Wood	0 – 999
-Bronze	1,000 – 4,999
-Iron	5,000 – 14,999
-Silver	15,000 – 34,999
-Gold	35,000 – 74,999
-Diamond	75,000 – 149,999
-Platinum	150,000 – 299,999
-Ruby	300,000+
+Tier,Color Theme,Min XP,Max XP,Suggested Badge Icon
+Wood,Dark Brown,0,999,Wooden log / Tree
+Copper,Copper Orange,"1,000","4,999",Copper coin / Wire
+Bronze,Bronze,"5,000","14,999",Laurel / Trophy
+Iron,Metallic Gray,"15,000","39,999",Hammer / Sword
+Silver,Bright Silver,"40,000","89,999",Star / Crown
+Gold,Gold,"90,000","179,999",Crown / Coin
+Diamond,Light Blue,"180,000","349,999",Diamond gem
+Platinum,White-Silver,"350,000","599,999",Wings / Bar
+Titanium,Dark Gray + Blue,"600,000","999,999",Titanium plate / Robot
+Ruby,Deep Red,"1,000,000+",∞,Ruby gem / Flame
 
 This is strong because:
 
@@ -16,24 +18,24 @@ higher ranks become difficult,
 elite ranks feel meaningful.
 Recommended Universal XP Rules
 Match XP
-Result	XP
-Win	+50 XP
-Draw	+25 XP
-Loss	+15 XP
+Result XP
+Win +50 XP
+Draw +25 XP
+Loss +15 XP
 Bonus XP
 Win Streaks
-Streak	Bonus XP
-3 Wins	+20 XP
-5 Wins	+50 XP
-10 Wins	+120 XP
+Streak Bonus XP
+3 Wins +20 XP
+5 Wins +50 XP
+10 Wins +120 XP
 Tournament Placement XP
-Placement	XP
-1st	+1000 XP
-2nd	+700 XP
-3rd	+500 XP
-Top 16	+250 XP
-Top 64	+100 XP
-Participation	+30 XP
+Placement XP
+1st +1000 XP
+2nd +700 XP
+3rd +500 XP
+Top 16 +250 XP
+Top 64 +100 XP
+Participation +30 XP
 Example Progression
 Casual Player
 
@@ -60,10 +62,10 @@ Competitive Player Example
 
 A stronger player:
 
-Result	Count
-Wins	8
-Draws	1
-Losses	1
+Result Count
+Wins 8
+Draws 1
+Losses 1
 
 XP:
 
@@ -82,16 +84,16 @@ That makes higher-skilled players climb faster naturally.
 
 Estimated Time To Reach Each Rank
 Casual Player (~300 XP/week)
-Rank	Estimated Time
-Bronze	~3 weeks
-Iron	~4 months
-Silver	~1 year
+Rank Estimated Time
+Bronze ~3 weeks
+Iron ~4 months
+Silver ~1 year
 Competitive Player (~1200 XP/week)
-Rank	Estimated Time
-Bronze	<1 week
-Iron	~1 month
-Silver	~3–5 months
-Gold	~1 year
+Rank Estimated Time
+Bronze <1 week
+Iron ~1 month
+Silver ~3–5 months
+Gold ~1 year
 Why This Structure Works
 Wood → Bronze
 
@@ -133,9 +135,9 @@ Smart Long-Term Feature
 
 Later you can add:
 
-Rank	Unlock
-Bronze	Ranked tournaments
-Silver	Premium competitions
-Gold	Sponsored events
-Diamond	Verified status
-Ruby	Invitational tournaments
+Rank Unlock
+Bronze Ranked tournaments
+Silver Premium competitions
+Gold Sponsored events
+Diamond Verified status
+Ruby Invitational tournaments
