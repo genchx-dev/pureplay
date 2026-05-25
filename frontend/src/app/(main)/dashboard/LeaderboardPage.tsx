@@ -79,9 +79,9 @@ const winRate = (wins: number, losses: number, draws = 0) => {
 };
 
 // ── Shared row grid classes ──────────────────────────────────────────────────
-// Mobile:  rank | player | earnings  (3 cols)
-// Desktop: rank | player | W/L/D | Win% | earnings  (5 cols)
-const ROW_GRID = 'grid grid-cols-[2rem_1fr_5rem] sm:grid-cols-[2.5rem_1fr_4.5rem_4rem_5.5rem] gap-2 items-center px-3 sm:px-4';
+// Mobile:  rank | player | win% | earnings  (4 cols)
+// Desktop: rank | player | W/L/D | win% | earnings  (5 cols)
+const ROW_GRID = 'grid grid-cols-[2rem_1fr_3rem_5rem] sm:grid-cols-[2.5rem_1fr_4.5rem_4rem_5.5rem] gap-2 items-center px-3 sm:px-4';
 const HEADER_GRID = `${ROW_GRID} py-2 border-b border-zinc-800 bg-zinc-900/50`;
 
 export const LeaderboardPage = () => {
@@ -183,7 +183,7 @@ export const LeaderboardPage = () => {
             <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Player</div>
             {/* Hidden on mobile */}
             <div className="hidden sm:block text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center">W/L/D</div>
-            <div className="hidden sm:block text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center">Win %</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center">Win %</div>
             <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-right">Earnings</div>
           </div>
 
@@ -223,8 +223,8 @@ export const LeaderboardPage = () => {
                     <span className="text-zinc-400 font-bold">{player.draws}</span>
                   </div>
 
-                  {/* Win % bar — desktop only */}
-                  <div className="hidden sm:flex flex-col items-center gap-1">
+                  {/* Win % bar — all screens */}
+                  <div className="flex flex-col items-center gap-1">
                     <span className="text-[10px] font-black text-zinc-400 font-mono">{rate}%</span>
                     <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full" style={{ width: `${rate}%` }} />
@@ -263,7 +263,7 @@ export const LeaderboardPage = () => {
                   <span className="text-zinc-400 font-bold">{userEntry.draws}</span>
                 </div>
 
-                <div className="hidden sm:flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-zinc-400 font-mono">{winRate(userEntry.wins, userEntry.losses, userEntry.draws)}%</span>
                   <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${winRate(userEntry.wins, userEntry.losses, userEntry.draws)}%` }} />
