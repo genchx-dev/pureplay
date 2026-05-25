@@ -29,6 +29,8 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.currentPlayer) gameStore.setCurrentPlayer(data.currentPlayer);
         if (data.playerSymbol) gameStore.setPlayerSymbol(data.playerSymbol);
         if (data.series) gameStore.setSeries(data.series);
+        if (data.player1Username) gameStore.setPlayer1Username(data.player1Username);
+        if (data.player2Username) gameStore.setPlayer2Username(data.player2Username);
         gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
         break;
       case WSEvent.TURN_SKIP:

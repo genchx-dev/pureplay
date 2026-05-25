@@ -39,6 +39,8 @@ export interface MatchEvent {
   turnEndsAt?: string;
   message?: string;
   series?: SeriesInfo | null;
+  player1Username?: string;
+  player2Username?: string;
   payout?: {
     winnerAmount?: number;
     platformFee?: number;

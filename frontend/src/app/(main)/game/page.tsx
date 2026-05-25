@@ -71,15 +71,16 @@ export const GamePage = () => {
     reconnect,
   } = isDemoMode ? demoGame : liveGame;
 
-<<<<<<< Updated upstream
   // Retrieve state and usernames from global store
   const {
     player1Username,
     player2Username,
-    currentRound,
-    roundScores,
-    roundWinner,
   } = useGameStore();
+
+  // For series: map wins to local 'You' and 'Opponent'
+  const myWins = series ? (playerSymbol === 'X' ? series.player1_wins : series.player2_wins) : 0;
+  const opponentWins = series ? (playerSymbol === 'X' ? series.player2_wins : series.player1_wins) : 0;
+  const isSeriesComplete = series?.is_complete || false;
 
   // Demo round tracking state
   const [demoRound, setDemoRound] = useState(1);
@@ -87,12 +88,6 @@ export const GamePage = () => {
   const [demoRoundWinner, setDemoRoundWinner] = useState<string | null>(null);
   const [demoIsGameOver, setDemoIsGameOver] = useState(false);
   const [demoFinalWinner, setDemoFinalWinner] = useState<string | null>(null);
-=======
-  // For series: map wins to local 'You' and 'Opponent'
-  const myWins = series ? (playerSymbol === 'X' ? series.player1_wins : series.player2_wins) : 0;
-  const opponentWins = series ? (playerSymbol === 'X' ? series.player2_wins : series.player1_wins) : 0;
-  const isSeriesComplete = series?.is_complete || false;
->>>>>>> Stashed changes
 
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
   const winningLine = getWinningLine(board);
@@ -108,16 +103,6 @@ export const GamePage = () => {
   const { user, checkAuth } = useAuth();
   const addMatchResult = useRankingStore((state) => state.addMatchResult);
 
-  // Live Mode Round Over overlay cleanup timer
-  useEffect(() => {
-    if (!isDemoMode && roundWinner) {
-      const timer = setTimeout(() => {
-        useGameStore.getState().setRoundWinner(null);
-        useGameStore.getState().setBoard(Array(9).fill(null));
-      }, 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [roundWinner, isDemoMode]);
 
   // Demo mode best-of-three engine simulation
   useEffect(() => {
@@ -187,22 +172,17 @@ export const GamePage = () => {
   const statusLabel =
     status === 'playing'
       ? 'LIVE'
-<<<<<<< Updated upstream
       : (isDemoMode ? demoIsGameOver : (status === 'finished' || status === 'draw'))
-      ? 'GAME OVER'
-=======
-      : status === 'finished' || status === 'draw'
-      ? (series && !isSeriesComplete ? 'ROUND OVER' : 'GAME OVER')
->>>>>>> Stashed changes
+      ? (isDemoMode ? 'GAME OVER' : (series && !isSeriesComplete ? 'ROUND OVER' : 'GAME OVER'))
       : 'CONNECTING...';
 
   // Compute values dynamically
   const authUser = user?.username || 'YOU';
   const player1Name = isDemoMode ? authUser : (player1Username || 'Player 1');
   const player2Name = isDemoMode ? 'ShadowMaster' : (player2Username || 'Player 2');
-  const currentRoundNum = isDemoMode ? demoRound : currentRound;
-  const currentRoundScores = isDemoMode ? demoScores : roundScores;
-  const activeRoundWinner = isDemoMode ? demoRoundWinner : roundWinner;
+  const currentRoundNum = isDemoMode ? demoRound : (series ? (series.player1_wins + series.player2_wins + 1) : 1);
+  const currentRoundScores = isDemoMode ? demoScores : { X: series ? series.player1_wins : 0, O: series ? series.player2_wins : 0 };
+  const activeRoundWinner = isDemoMode ? demoRoundWinner : null;
 
   const finalWinnerSymbol = isDemoMode ? demoFinalWinner : winner;
   const didFinalWin = finalWinnerSymbol && finalWinnerSymbol !== 'draw' && playerSymbol === finalWinnerSymbol;
@@ -210,24 +190,17 @@ export const GamePage = () => {
   const resultTitle =
     finalWinnerSymbol === 'draw' ? 'Draw Match' : didFinalWin ? 'You Won' : 'Match Complete';
 
-  const resultDescription =
-<<<<<<< Updated upstream
-    finalWinnerSymbol === 'draw'
-      ? 'Both players held the board.'
-      : didFinalWin
-      ? isDemoMode 
-        ? 'Great game! You won the practice series.' 
-        : 'Clean finish. Your wallet will update with the match payout.'
-      : isDemoMode 
-        ? 'Good try! Opponent won the practice series.'
-        : `${finalWinnerSymbol === 'X' ? player1Name : player2Name} wins the match.`;
-=======
-    winner === 'draw'
-      ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
-      : didWin
-      ? (series && !isSeriesComplete ? 'You won this round! Waiting for next match...' : 'Clean finish. Your wallet will update with the match payout.')
-      : (series && !isSeriesComplete ? `${winner || 'Opponent'} wins this round. Preparing next match...` : `${winner || 'Opponent'} wins this round.`);
->>>>>>> Stashed changes
+  const resultDescription = isDemoMode
+    ? (finalWinnerSymbol === 'draw'
+        ? 'Both players held the board.'
+        : didFinalWin
+        ? 'Great game! You won the practice series.'
+        : 'Good try! Opponent won the practice series.')
+    : (winner === 'draw'
+        ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
+        : didWin
+        ? (series && !isSeriesComplete ? 'You won this round! Waiting for next match...' : 'Clean finish. Your wallet will update with the match payout.')
+        : (series && !isSeriesComplete ? `${winner || 'Opponent'} wins this round. Preparing next match...` : `${winner || 'Opponent'} wins this round.`));
 
   const getCellClasses = (idx: number, cell: string | null) => {
     const isWinner = winningLine?.includes(idx);

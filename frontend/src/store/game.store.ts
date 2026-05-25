@@ -14,6 +14,8 @@ interface GameStore {
   error: string | null;
   payout: GamePayout | null;
   series: SeriesInfo | null;
+  player1Username: string | null;
+  player2Username: string | null;
   decrementTimer: () => void;
   resetTimer: () => void;
   setTimeLeft: (timeLeft: number) => void;
@@ -26,6 +28,8 @@ interface GameStore {
   setError: (error: string | null) => void;
   setPayout: (payout: GamePayout | null) => void;
   setSeries: (series: SeriesInfo | null) => void;
+  setPlayer1Username: (username: string | null) => void;
+  setPlayer2Username: (username: string | null) => void;
   resetGame: () => void;
 }
 
@@ -40,6 +44,8 @@ export const useGameStore = create<GameStore>((set) => ({
   error: null,
   payout: null,
   series: null,
+  player1Username: null,
+  player2Username: null,
   
   decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
   resetTimer: () => set({ timeLeft: 10 }),
@@ -53,6 +59,8 @@ export const useGameStore = create<GameStore>((set) => ({
   setError: (error) => set({ error }),
   setPayout: (payout) => set({ payout }),
   setSeries: (series) => set({ series }),
+  setPlayer1Username: (player1Username) => set({ player1Username }),
+  setPlayer2Username: (player2Username) => set({ player2Username }),
   // Logic for turn switching on timeout (Frontend mirror of Backend logic)
   handleTimeout: () => set((state) => ({
     currentPlayer: state.currentPlayer === 'X' ? 'O' : 'X',
@@ -68,6 +76,8 @@ export const useGameStore = create<GameStore>((set) => ({
     timeLeft: 10,
     error: null,
     payout: null,
-    series: null
+    series: null,
+    player1Username: null,
+    player2Username: null
   }),
 }));
