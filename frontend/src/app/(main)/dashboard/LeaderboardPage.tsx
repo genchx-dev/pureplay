@@ -58,16 +58,20 @@ const BadgeImg = ({ src, alt, size = 14 }: { src: string; alt: string; size?: nu
   </span>
 );
 
+/**
+ * TierBadge — pure CSS, no image loading.
+ * Uses bg-current so the dot inherits the tier's text color automatically.
+ * This avoids rendering multi-MB SVGs in every table row, which caused scroll lag.
+ */
 export const TierBadge = ({ tierName, xp }: { tierName?: string; xp?: number }) => {
   const tierConfig = xp !== undefined
     ? getTierByXp(xp)
     : TIERS.find(t => t.name.toLowerCase() === tierName?.toLowerCase()) || TIERS[0];
 
-  const badgeUrl = TIER_BADGES[tierConfig.name.toLowerCase()] || bronzeIcon;
-
   return (
     <div className={`inline-flex w-fit items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${tierConfig.bg} ${tierConfig.color} border ${tierConfig.border}`}>
-      <BadgeImg src={badgeUrl} alt={tierConfig.name} size={14} />
+      {/* Colored dot — inherits tier text color via bg-current, zero SVG overhead */}
+      <span className="w-2 h-2 rounded-full flex-shrink-0 bg-current opacity-80" />
       <span>{tierConfig.name}</span>
     </div>
   );
