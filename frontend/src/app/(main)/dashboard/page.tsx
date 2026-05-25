@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Home, 
   Swords, 
@@ -95,12 +96,20 @@ const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: 
 };
 
 export const HomePage = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isAuthenticated } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
 
   const fetchIncoming = useChallengeStore((state) => state.fetchIncoming);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['home', 'challenge', 'tournament', 'leaderboard', 'me'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

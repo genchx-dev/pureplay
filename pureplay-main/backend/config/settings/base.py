@@ -113,4 +113,4 @@ CACHES = {
 # Paystack
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY',)
 PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY',)
-PAYSTACK_CALLBACK_URL = os.getenv('PAYSTACK_CALLBACK_URL', 'https://yourdomain.com/api/wallet/paystack/verify/')
+PAYSTACK_CALLBACK_URL = os.getenv('PAYSTACK_CALLBACK_URL', 'http://localhost:5173/wallet')

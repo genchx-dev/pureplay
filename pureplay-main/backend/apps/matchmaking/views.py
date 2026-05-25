@@ -139,8 +139,13 @@ def challenge_player_view(request):
     if str(opponent_id) == str(request.user.id):
         return Response({'error': 'You cannot challenge yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
-    match = create_match(request.user.id, game_type=game_type, stake=stake)
-    join_match(match.id, opponent_id)
+    from apps.matches.services import create_series
+    if game_type == 'tictactoe' or stake > 0:
+        series, match = create_series(request.user.id, opponent_id, game_type, stake)
+    else:
+        match = create_match(request.user.id, game_type=game_type, stake=stake)
+        join_match(match.id, opponent_id)
+        
     return Response({'status': 'matched', 'matchId': str(match.id)})
 
 

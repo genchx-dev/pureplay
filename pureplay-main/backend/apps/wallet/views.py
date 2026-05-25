@@ -53,6 +53,7 @@ def withdraw(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 import uuid
+from decimal import Decimal
 from .paystack import PaystackService
 from .models import PaymentTransaction
 from .services import WalletService

@@ -11,7 +11,7 @@ export const WalletPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const { balance = 0, transactions, loading, error, deposit, withdraw } = useWallet(isAuthenticated);
+  const { balance = 0, transactions, loading, error, deposit, verifyDeposit, withdraw } = useWallet(isAuthenticated);
   const walletActionsEnabled = true;
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
   const [walletAction, setWalletAction] = useState<WalletAction>(null);
@@ -23,11 +23,21 @@ export const WalletPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    const reference = searchParams.get('reference');
+    if (reference) {
+      verifyDeposit(reference).then(() => {
+        // Navigate back to "Me" tab on home page after successful verification
+        // or just stay here but clear the reference.
+        // The user said "not linking to the me page", so let's redirect to /?tab=me
+        navigate('/?tab=me', { replace: true });
+      });
+    }
+
     const actionParam = searchParams.get('action');
     if (actionParam === 'deposit' || actionParam === 'withdraw') {
       setWalletAction(actionParam);
     }
-  }, [searchParams]);
+  }, [searchParams, verifyDeposit, navigate]);
 
   const gameHistory = [
     { id: 1, game: 'Tic Tac Toe', opponent: 'ShadowMaster', result: 'WIN', earnings: 950, date: 'May 13, 2026', time: '03:25 PM' },
@@ -77,8 +87,9 @@ export const WalletPage = () => {
 
     try {
       if (walletAction === 'deposit') {
+        // This will trigger a redirect to Paystack
         await deposit(numericAmount);
-        setSuccessMessage(`Deposit of NGN ${numericAmount.toLocaleString()} completed.`);
+        return;
       }
 
       if (walletAction === 'withdraw') {
@@ -88,6 +99,10 @@ export const WalletPage = () => {
           accountName: accountName.trim(),
         });
         setSuccessMessage(`Withdrawal of NGN ${numericAmount.toLocaleString()} completed.`);
+        // Redirect to Me tab after withdrawal too
+        setTimeout(() => {
+          navigate('/?tab=me', { replace: true });
+        }, 2000);
       }
 
       setWalletAction(null);
