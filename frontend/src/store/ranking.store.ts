@@ -284,7 +284,8 @@ export const useRankingStore = create<RankingState>((set, get) => ({
     localStorage.removeItem(`matches_${username}`);
     localStorage.setItem(`xp_${username}`, '5000'); // Reset to Bronze entry
 
-    if (username === 'demo') {
+    const isDemo = username.toLowerCase() === 'demo' || username.toLowerCase() === 'demoplayer';
+    if (isDemo) {
       localStorage.setItem('demo_balance', '1000');
       localStorage.setItem('demo_transactions', '[]');
       useWalletStore.setState({ balance: 1000, transactions: [] });

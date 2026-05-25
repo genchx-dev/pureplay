@@ -18,6 +18,12 @@ const normalizeTransaction = (transaction: WalletTransactionResponse): Transacti
   description: transaction.description,
 });
 
+const isDemoUser = (username?: string) => {
+  if (!username) return false;
+  const lower = username.toLowerCase();
+  return lower === 'demo' || lower === 'demoplayer';
+};
+
 interface WalletState {
   balance: number;
   transactions: Transaction[];
@@ -40,7 +46,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     
     // Support demo account override to 1000 NGN
     const currentUser = useAuthStore.getState().user;
-    if (currentUser && currentUser.username === 'demo') {
+    if (currentUser && isDemoUser(currentUser.username)) {
       const storedDemoBal = localStorage.getItem('demo_balance');
       const bal = storedDemoBal ? Number(storedDemoBal) : 1000;
       if (!storedDemoBal) {
@@ -64,7 +70,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     
     // Support demo account override
     const currentUser = useAuthStore.getState().user;
-    if (currentUser && currentUser.username === 'demo') {
+    if (currentUser && isDemoUser(currentUser.username)) {
       const storedTxs = localStorage.getItem('demo_transactions');
       const txs = storedTxs ? JSON.parse(storedTxs) : [];
       set({ transactions: txs, loading: false, error: null });
@@ -84,7 +90,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ loading: true });
     
     const currentUser = useAuthStore.getState().user;
-    if (currentUser && currentUser.username === 'demo') {
+    if (currentUser && isDemoUser(currentUser.username)) {
       const newBal = get().balance + amount;
       const newTx: Transaction = {
         id: `demo_tx_${Date.now()}`,
@@ -120,7 +126,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ loading: true });
     
     const currentUser = useAuthStore.getState().user;
-    if (currentUser && currentUser.username === 'demo') {
+    if (currentUser && isDemoUser(currentUser.username)) {
       if (get().balance < amount) {
         set({ loading: false, error: 'Insufficient balance' });
         throw new Error('Insufficient balance');
@@ -161,7 +167,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 // Automatically sync demo user states to localStorage
 useWalletStore.subscribe((state) => {
   const user = useAuthStore.getState().user;
-  if (user && user.username === 'demo') {
+  if (user && isDemoUser(user.username)) {
     localStorage.setItem('demo_balance', String(state.balance));
     localStorage.setItem('demo_transactions', JSON.stringify(state.transactions));
   }
