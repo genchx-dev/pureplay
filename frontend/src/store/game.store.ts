@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BoardState, PlayerSymbol, GameStatus, MatchEvent } from '../types/game.types';
+import type { BoardState, PlayerSymbol, GameStatus, MatchEvent, SeriesInfo } from '../types/game.types';
 
 type GamePayout = NonNullable<MatchEvent['payout']>;
 
@@ -13,11 +13,7 @@ interface GameStore {
   timeLeft: number;
   error: string | null;
   payout: GamePayout | null;
-  player1Username: string | null;
-  player2Username: string | null;
-  currentRound: number;
-  roundScores: Record<string, number>;
-  roundWinner: string | 'draw' | null;
+  series: SeriesInfo | null;
   decrementTimer: () => void;
   resetTimer: () => void;
   setTimeLeft: (timeLeft: number) => void;
@@ -29,11 +25,7 @@ interface GameStore {
   setStatus: (status: GameStatus) => void;
   setError: (error: string | null) => void;
   setPayout: (payout: GamePayout | null) => void;
-  setPlayer1Username: (username: string | null) => void;
-  setPlayer2Username: (username: string | null) => void;
-  setCurrentRound: (round: number) => void;
-  setRoundScores: (scores: Record<string, number>) => void;
-  setRoundWinner: (winner: string | 'draw' | null) => void;
+  setSeries: (series: SeriesInfo | null) => void;
   resetGame: () => void;
 }
 
@@ -47,11 +39,7 @@ export const useGameStore = create<GameStore>((set) => ({
   timeLeft: 10,
   error: null,
   payout: null,
-  player1Username: null,
-  player2Username: null,
-  currentRound: 1,
-  roundScores: { X: 0, O: 0 },
-  roundWinner: null,
+  series: null,
   
   decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
   resetTimer: () => set({ timeLeft: 10 }),
@@ -64,11 +52,7 @@ export const useGameStore = create<GameStore>((set) => ({
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
   setPayout: (payout) => set({ payout }),
-  setPlayer1Username: (player1Username) => set({ player1Username }),
-  setPlayer2Username: (player2Username) => set({ player2Username }),
-  setCurrentRound: (currentRound) => set({ currentRound }),
-  setRoundScores: (roundScores) => set({ roundScores }),
-  setRoundWinner: (roundWinner) => set({ roundWinner }),
+  setSeries: (series) => set({ series }),
   // Logic for turn switching on timeout (Frontend mirror of Backend logic)
   handleTimeout: () => set((state) => ({
     currentPlayer: state.currentPlayer === 'X' ? 'O' : 'X',
@@ -84,10 +68,6 @@ export const useGameStore = create<GameStore>((set) => ({
     timeLeft: 10,
     error: null,
     payout: null,
-    player1Username: null,
-    player2Username: null,
-    currentRound: 1,
-    roundScores: { X: 0, O: 0 },
-    roundWinner: null
+    series: null
   }),
 }));

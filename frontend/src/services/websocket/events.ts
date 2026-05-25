@@ -7,7 +7,7 @@ export const WSEvent = {
   MAKE_MOVE: 'MAKE_MOVE',
   PLAYER_DISCONNECTED: 'PLAYER_DISCONNECTED',
   PAYOUT_TRIGGERED: 'PAYOUT_TRIGGERED',
-  ROUND_OVER: 'ROUND_OVER'
+  NEXT_MATCH: 'NEXT_MATCH',
 } as const;
 
 export type WSEventType = typeof WSEvent[keyof typeof WSEvent];

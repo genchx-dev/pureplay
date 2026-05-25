@@ -66,10 +66,12 @@ export const GamePage = () => {
     winner,
     error,
     payout,
+    series,
     sendMove,
     reconnect,
   } = isDemoMode ? demoGame : liveGame;
 
+<<<<<<< Updated upstream
   // Retrieve state and usernames from global store
   const {
     player1Username,
@@ -85,6 +87,12 @@ export const GamePage = () => {
   const [demoRoundWinner, setDemoRoundWinner] = useState<string | null>(null);
   const [demoIsGameOver, setDemoIsGameOver] = useState(false);
   const [demoFinalWinner, setDemoFinalWinner] = useState<string | null>(null);
+=======
+  // For series: map wins to local 'You' and 'Opponent'
+  const myWins = series ? (playerSymbol === 'X' ? series.player1_wins : series.player2_wins) : 0;
+  const opponentWins = series ? (playerSymbol === 'X' ? series.player2_wins : series.player1_wins) : 0;
+  const isSeriesComplete = series?.is_complete || false;
+>>>>>>> Stashed changes
 
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
   const winningLine = getWinningLine(board);
@@ -157,7 +165,10 @@ export const GamePage = () => {
   };
 
   useEffect(() => {
-    if (!isDemoMode && (status === 'finished' || status === 'draw')) {
+    // If it's a series, only update ranking/balance when the WHOLE series is finished
+    const shouldReport = isSeriesComplete || (!series && (status === 'finished' || status === 'draw'));
+
+    if (!isDemoMode && shouldReport) {
       fetchBalance();
       fetchTransactions();
       
@@ -171,13 +182,18 @@ export const GamePage = () => {
       
       checkAuth();
     }
-  }, [fetchBalance, fetchTransactions, checkAuth, isDemoMode, status, user?.username, winner, didWin, payout, addMatchResult]);
+  }, [fetchBalance, fetchTransactions, checkAuth, isDemoMode, status, user?.username, winner, didWin, payout, addMatchResult, isSeriesComplete, series]);
 
   const statusLabel =
     status === 'playing'
       ? 'LIVE'
+<<<<<<< Updated upstream
       : (isDemoMode ? demoIsGameOver : (status === 'finished' || status === 'draw'))
       ? 'GAME OVER'
+=======
+      : status === 'finished' || status === 'draw'
+      ? (series && !isSeriesComplete ? 'ROUND OVER' : 'GAME OVER')
+>>>>>>> Stashed changes
       : 'CONNECTING...';
 
   // Compute values dynamically
@@ -195,6 +211,7 @@ export const GamePage = () => {
     finalWinnerSymbol === 'draw' ? 'Draw Match' : didFinalWin ? 'You Won' : 'Match Complete';
 
   const resultDescription =
+<<<<<<< Updated upstream
     finalWinnerSymbol === 'draw'
       ? 'Both players held the board.'
       : didFinalWin
@@ -204,6 +221,13 @@ export const GamePage = () => {
       : isDemoMode 
         ? 'Good try! Opponent won the practice series.'
         : `${finalWinnerSymbol === 'X' ? player1Name : player2Name} wins the match.`;
+=======
+    winner === 'draw'
+      ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
+      : didWin
+      ? (series && !isSeriesComplete ? 'You won this round! Waiting for next match...' : 'Clean finish. Your wallet will update with the match payout.')
+      : (series && !isSeriesComplete ? `${winner || 'Opponent'} wins this round. Preparing next match...` : `${winner || 'Opponent'} wins this round.`);
+>>>>>>> Stashed changes
 
   const getCellClasses = (idx: number, cell: string | null) => {
     const isWinner = winningLine?.includes(idx);
@@ -256,6 +280,31 @@ export const GamePage = () => {
             <span className="font-mono font-bold text-sm">{timeLeft}s</span>
           </div>
         </header>
+
+        {/* Series Progress */}
+        {series && (
+          <div className="mb-6 flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">You</span>
+              <div className="mt-1 flex gap-1">
+                {[0, 1].map((i) => (
+                  <div key={i} className={`h-1.5 w-8 rounded-full ${i < myWins ? 'bg-primary shadow-[0_0_8px_rgba(255,204,51,0.4)]' : 'bg-zinc-800'}`} />
+                ))}
+              </div>
+            </div>
+            <div className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/50">
+              Best of 3
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Opponent</span>
+              <div className="mt-1 flex gap-1">
+                {[0, 1].map((i) => (
+                  <div key={i} className={`h-1.5 w-8 rounded-full ${i < opponentWins ? 'bg-primary shadow-[0_0_8px_rgba(255,204,51,0.4)]' : 'bg-zinc-800'}`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Match Pot Badge */}
         <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-zinc-800/80 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">

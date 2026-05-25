@@ -10,6 +10,7 @@ from asgiref.sync import async_to_sync
 from .models import Challenge
 from apps.matches.models import Match
 from apps.wallet.services import WalletService
+from apps.matches.services import create_series, create_match, join_match   # <-- added
 
 
 class ChallengeService:
@@ -94,24 +95,25 @@ class ChallengeService:
         if challenge.to_user != accepting_user:
             raise ValueError("You are not the recipient of this challenge")
 
-        # Lock stake from challenger
+        # Lock stake from challenger (only for staked challenges)
         if challenge.stake_amount > 0:
             WalletService.lock_funds(challenge.from_user, challenge.stake_amount)
 
-        # Create match
-        match = Match.objects.create(
-            player1=challenge.from_user,
-            player2=challenge.to_user,
-            status='active',
-            game_state={
-                'board': [None] * 9,
-                'currentPlayer': 'X',
-                'turnEndsAt': (timezone.now() + timedelta(seconds=30)).isoformat(),
-                'stake': float(challenge.stake_amount),
-            }
-        )
-        match.current_turn = challenge.from_user
-        match.save()
+        # ============================================================
+        # CREATE MATCH OR SERIES (best‑of‑3 for Tic Tac Toe)
+        # ============================================================
+        if challenge.game_type == 'tictactoe' or challenge.stake_amount > 0:
+            # Tic Tac Toe or staked challenge → best‑of‑3 series
+            series, match = create_series(
+                challenge.from_user.id,
+                challenge.to_user.id,
+                challenge.game_type,
+                challenge.stake_amount
+            )
+        else:
+            # Other free games → single match
+            match = create_match(challenge.from_user.id, challenge.game_type, stake=0)
+            join_match(match.id, challenge.to_user.id)
 
         challenge.status = 'accepted'
         challenge.save(update_fields=['status'])
