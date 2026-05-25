@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
+  Wallet,
   Settings as SettingsIcon,
   LogOut,
   ArrowDownLeft,
@@ -135,6 +136,23 @@ export const MePage = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* Wallet Actions */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => alert("Deposit features are coming soon once the payment gateway ledger is integrated!")}
+          className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+          <Wallet size={16} />
+          Deposit
+        </button>
+        <button
+          onClick={() => alert("Withdrawal features are coming soon once the banking provider integration is active!")}
+          className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all active:scale-95"
+        >
+          Withdraw
+        </button>
       </div>
 
       {/* Stats Section */}
