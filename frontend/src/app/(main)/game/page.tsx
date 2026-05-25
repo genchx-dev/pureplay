@@ -1,6 +1,6 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
-import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords } from 'lucide-react';
+import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 import { comingSoonGames, ticTacToeGame } from '../../../data/games';
@@ -37,6 +37,20 @@ export const GamePage = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const [searchParams] = useSearchParams();
   const isDemoMode = searchParams.get('demo') === '1';
+  
+  // Parse stake from matchId or fallback to 500
+  let calculatedStake = 500;
+  if (matchId) {
+    const parts = matchId.split(':');
+    if (parts.length >= 3) {
+      const parsedStake = Number(parts[2]);
+      if (!Number.isNaN(parsedStake) && parsedStake > 0) {
+        calculatedStake = parsedStake;
+      }
+    }
+  }
+  const totalPot = isDemoMode ? 0 : calculatedStake * 2;
+  const estWinPot = isDemoMode ? 0 : Math.round(totalPot * 0.95);
   const fetchBalance = useWalletStore((state) => state.fetchBalance);
   const fetchTransactions = useWalletStore((state) => state.fetchTransactions);
 
@@ -154,6 +168,24 @@ export const GamePage = () => {
             <span className="font-mono font-bold text-sm">{timeLeft}s</span>
           </div>
         </header>
+
+        {/* Match Pot Badge */}
+        <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-zinc-800/80 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <Coins className="text-primary animate-pulse" size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Match Stake</span>
+          </div>
+          <div className="flex items-center gap-1.5 font-mono">
+            {isDemoMode ? (
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Practice Match (Free)</span>
+            ) : (
+              <>
+                <span className="text-[10px] font-bold text-zinc-500 mr-2 uppercase">Est. Payout: NGN {estWinPot.toLocaleString()}</span>
+                <span className="text-sm font-black text-primary">NGN {totalPot.toLocaleString()}</span>
+              </>
+            )}
+          </div>
+        </div>
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-bold text-red-300">
