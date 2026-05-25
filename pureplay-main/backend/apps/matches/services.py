@@ -140,6 +140,13 @@ def make_move(match_id, player_id, move):
             raise ValueError('You are not a player in this match')
 
         state = match.game_state.copy()
+        if 'currentRound' not in state:
+            state['currentRound'] = 1
+        if 'roundScores' not in state:
+            state['roundScores'] = {'X': 0, 'O': 0}
+        if 'roundWinner' not in state:
+            state['roundWinner'] = None
+
         game_type = state.get('gameType', 'tictactoe')
         engine = get_engine(game_type)
 
@@ -150,6 +157,13 @@ def make_move(match_id, player_id, move):
 
         # Apply move
         new_state = engine.apply_move(state, symbol, move)
+        if 'currentRound' not in new_state:
+            new_state['currentRound'] = state['currentRound']
+        if 'roundScores' not in new_state:
+            new_state['roundScores'] = state['roundScores'].copy()
+        
+        # Reset roundWinner at start of turn
+        new_state['roundWinner'] = None
 
         # Check game over
         is_over, winner_symbol, _ = engine.check_game_over(new_state)
@@ -157,30 +171,28 @@ def make_move(match_id, player_id, move):
         stake = Decimal(state.get('stake', '0'))
 
         # =========================
-        # GAME OVER
+        # GAME OVER (ROUND OR SERIES)
         # =========================
         if is_over:
-            new_state['turnEndsAt'] = None
+            # Update round winner
+            new_state['roundWinner'] = winner_symbol
 
-            if winner_symbol == 'draw':
-                new_state['winner'] = 'draw'
+            # Increment scores
+            if winner_symbol != 'draw':
+                scores = new_state['roundScores'].copy()
+                scores[winner_symbol] = scores.get(winner_symbol, 0) + 1
+                new_state['roundScores'] = scores
 
-                if stake > 0:
-                    WalletService.refund_match_stakes(
-                        match.player1,
-                        match.player2,
-                        stake,
-                        match.id,
-                        reason="Match Draw"
-                    )
-
-                # Ranking update for draw
-                RankingService.update_after_match(match.id, None, None, is_draw=True)
-
-            else:
-                # winner_symbol is e.g., 'X' or 'O'
-                new_state['winner'] = winner_symbol
-                winner_id = new_state.get('players', {}).get(winner_symbol)
+            scores = new_state['roundScores']
+            
+            # Check if someone reached 2 wins
+            if scores.get('X', 0) >= 2 or scores.get('O', 0) >= 2:
+                # MATCH is complete!
+                new_state['turnEndsAt'] = None
+                
+                final_winner_symbol = 'X' if scores.get('X', 0) >= 2 else 'O'
+                new_state['winner'] = final_winner_symbol
+                winner_id = new_state.get('players', {}).get(final_winner_symbol)
                 match.winner_id = winner_id
 
                 winner = match.player1 if str(match.player1_id) == str(winner_id) else match.player2
@@ -197,11 +209,32 @@ def make_move(match_id, player_id, move):
                 # Ranking update for win
                 RankingService.update_after_match(match.id, winner, loser)
 
-            match.status = 'completed'
-            match.game_state = new_state
-            match.save(update_fields=['winner_id', 'status', 'game_state', 'updated_at'])
+                match.status = 'completed'
+                match.game_state = new_state
+                match.save(update_fields=['winner_id', 'status', 'game_state', 'updated_at'])
 
-            return match, 'GAME_OVER'
+                return match, 'GAME_OVER'
+
+            # Series continues: start next round
+            new_state['currentRound'] = new_state['currentRound'] + 1
+            new_state['board'] = [None] * 9  # reset board
+            
+            # Alternate starting player for next round
+            next_start_symbol = 'X' if new_state['currentRound'] % 2 == 1 else 'O'
+            new_state['currentPlayer'] = next_start_symbol
+            
+            # Set turn deadline for next player
+            new_state['turnEndsAt'] = iso(turn_deadline())
+
+            if next_start_symbol == 'X':
+                match.current_turn = match.player1
+            else:
+                match.current_turn = match.player2
+
+            match.game_state = new_state
+            match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
+
+            return match, 'ROUND_OVER'
 
         # =========================
         # CONTINUE GAME

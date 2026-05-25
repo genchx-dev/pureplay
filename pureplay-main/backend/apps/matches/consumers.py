@@ -74,6 +74,13 @@ class MatchConsumer(AsyncWebsocketConsumer):
             return
 
         # =========================
+        # ROUND OVER FLOW
+        # =========================
+        if event_type == 'ROUND_OVER':
+            await self.handle_round_over(match)
+            return
+
+        # =========================
         # GAME OVER FLOW
         # =========================
         if event_type == 'GAME_OVER':
@@ -92,6 +99,22 @@ class MatchConsumer(AsyncWebsocketConsumer):
         )
 
         await self.schedule_turn_timeout()
+
+    # =========================
+    # ROUND OVER HANDLER
+    # =========================
+
+    async def handle_round_over(self, match):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'round_over',
+                'roundWinner': match.game_state.get('roundWinner'),
+                'currentRound': match.game_state.get('currentRound'),
+                'roundScores': match.game_state.get('roundScores'),
+                'board': match.game_state['board'],
+            }
+        )
 
     # =========================
     # GAME OVER HANDLER (NO DUPLICATE SETTLEMENT)
@@ -143,6 +166,15 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'board': event['board'],   # ✅ frontend receives final board
         })
 
+    async def round_over(self, event):
+        await self.send_json({
+            'type': 'ROUND_OVER',
+            'roundWinner': event['roundWinner'],
+            'currentRound': event['currentRound'],
+            'roundScores': event['roundScores'],
+            'board': event['board'],
+        })
+
     # =========================
     # MATCH START
     # =========================
@@ -159,6 +191,8 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'currentPlayer': state.get('currentPlayer', 'X'),
             'playerSymbol': symbol,
             'turnEndsAt': state.get('turnEndsAt'),
+            'player1Username': match.player1.username,
+            'player2Username': match.player2.username if match.player2 else None,
         })
 
     # =========================
@@ -239,7 +273,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_match(self):
-        return get_match_model().objects.get(id=self.match_id)
+        return get_match_model().objects.select_related('player1', 'player2').get(id=self.match_id)
 
     @database_sync_to_async
     def get_user_by_symbol(self, match, symbol):

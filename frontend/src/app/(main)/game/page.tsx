@@ -519,8 +519,8 @@ export const GamePage = () => {
             <div className="text-xl font-black">{currentPlayer}</div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Match</div>
-            <div className="text-xl font-black text-zinc-500">{matchId ? matchId.slice(0, 4) : '-'}</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Round</div>
+            <div className="text-xl font-black text-primary">{currentRoundNum}</div>
           </div>
         </div>
 
