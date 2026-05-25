@@ -11,6 +11,7 @@ from apps.matches.services import create_match, join_match
 from .queue import accept_open_match, cancel_queue_entry, ensure_queue_entry, list_open_matches
 
 # NEW imports for challenge system
+from .models import Challenge
 from .services import ChallengeService
 from .serializers import ChallengeSerializer
 
