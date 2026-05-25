@@ -64,11 +64,14 @@ class MatchConsumer(AsyncWebsocketConsumer):
         position = (data.get('payload') or {}).get('position')
 
         try:
-            match, event_type = await database_sync_to_async(make_move)(
+            res = await database_sync_to_async(make_move)(
                 self.match_id,
                 self.user.id,
                 position
             )
+            match = res[0]
+            event_type = res[1]
+            completed_board = res[2] if len(res) > 2 else None
         except ValueError as exc:
             await self.send_error(str(exc))
             return
@@ -77,7 +80,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
         # ROUND OVER FLOW
         # =========================
         if event_type == 'ROUND_OVER':
-            await self.handle_round_over(match)
+            await self.handle_round_over(match, completed_board)
             return
 
         # =========================
@@ -104,7 +107,8 @@ class MatchConsumer(AsyncWebsocketConsumer):
     # ROUND OVER HANDLER
     # =========================
 
-    async def handle_round_over(self, match):
+    async def handle_round_over(self, match, completed_board=None):
+        board = completed_board if completed_board is not None else match.game_state['board']
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -112,7 +116,9 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 'roundWinner': match.game_state.get('roundWinner'),
                 'currentRound': match.game_state.get('currentRound'),
                 'roundScores': match.game_state.get('roundScores'),
-                'board': match.game_state['board'],
+                'board': board,
+                'currentPlayer': match.game_state.get('currentPlayer'),
+                'turnEndsAt': match.game_state.get('turnEndsAt'),
             }
         )
 
@@ -173,6 +179,8 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'currentRound': event['currentRound'],
             'roundScores': event['roundScores'],
             'board': event['board'],
+            'currentPlayer': event['currentPlayer'],
+            'turnEndsAt': event['turnEndsAt'],
         })
 
     # =========================

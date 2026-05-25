@@ -213,10 +213,11 @@ def make_move(match_id, player_id, move):
                 match.game_state = new_state
                 match.save(update_fields=['winner_id', 'status', 'game_state', 'updated_at'])
 
-                return match, 'GAME_OVER'
+                return match, 'GAME_OVER', None
 
             # Series continues: start next round
             new_state['currentRound'] = new_state['currentRound'] + 1
+            completed_board = new_state['board'].copy()
             new_state['board'] = [None] * 9  # reset board
             
             # Alternate starting player for next round
@@ -234,7 +235,7 @@ def make_move(match_id, player_id, move):
             match.game_state = new_state
             match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
 
-            return match, 'ROUND_OVER'
+            return match, 'ROUND_OVER', completed_board
 
         # =========================
         # CONTINUE GAME
@@ -253,7 +254,7 @@ def make_move(match_id, player_id, move):
         match.game_state = new_state
         match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
 
-        return match, 'MOVE_MADE'
+        return match, 'MOVE_MADE', None
 
 
 # =========================

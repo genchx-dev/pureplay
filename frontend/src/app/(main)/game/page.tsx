@@ -105,6 +105,7 @@ export const GamePage = () => {
     if (!isDemoMode && roundWinner) {
       const timer = setTimeout(() => {
         useGameStore.getState().setRoundWinner(null);
+        useGameStore.getState().setBoard(Array(9).fill(null));
       }, 3500);
       return () => clearTimeout(timer);
     }
