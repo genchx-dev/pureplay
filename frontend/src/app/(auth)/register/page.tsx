@@ -41,7 +41,7 @@ export const RegisterPage = () => {
     setIsLoading(true);
     try {
       localStorage.setItem('pendingPhoneNumber', phone.trim());
-      await register({ username, email, password });
+      await register({ username, email, password, phone: phone.trim() });
       navigate('/');
     } catch (err) {
       console.error('Registration failed', err);

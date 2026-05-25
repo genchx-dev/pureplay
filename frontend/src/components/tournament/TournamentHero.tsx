@@ -32,7 +32,7 @@ export const TournamentHero = ({
     <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-zinc-900 to-black p-5 shadow-xl shadow-primary/5">
       <div className="mb-5 flex items-start gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-zinc-900">
-          <img src={gameImage} alt="" className="h-full w-full object-cover" />
+          <img src={gameImage} alt="" className="h-full w-full object-contain p-1.5" />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -69,7 +69,7 @@ export const TournamentHero = ({
               <Coins size={12} />
               Entry
             </div>
-            <div className="text-lg font-black text-white">N{entryFee.toLocaleString()}</div>
+            <div className="text-lg font-black text-white">NGN {entryFee.toLocaleString()}</div>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export const TournamentHero = ({
               <Trophy size={12} />
               Prize Pool
             </div>
-            <div className="text-2xl font-black text-primary md:text-3xl">N{totalPrize.toLocaleString()}</div>
+            <div className="text-2xl font-black text-primary md:text-3xl">NGN {totalPrize.toLocaleString()}</div>
           </div>
 
           <div className="space-y-2">
@@ -96,7 +96,7 @@ export const TournamentHero = ({
                   {index + 1}. {prize.rank.replace(' PLACE', '')}
                 </span>
                 <span className={`shrink-0 text-xs font-black ${index === 0 ? 'text-primary' : 'text-zinc-200'}`}>
-                  N{prize.prize.toLocaleString()}
+                  NGN {prize.prize.toLocaleString()}
                 </span>
               </div>
             ))}

@@ -11,6 +11,7 @@ export const useGameSocket = (matchId?: string) => {
     playerSymbol,
     winner,
     error,
+    payout,
     decrementTimer,
     resetGame
   } = useGameStore();
@@ -47,6 +48,7 @@ export const useGameSocket = (matchId?: string) => {
     playerSymbol,
     winner,
     error,
+    payout,
     sendMove,
     reconnect,
   };

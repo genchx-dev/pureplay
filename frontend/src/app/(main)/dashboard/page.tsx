@@ -4,11 +4,11 @@ import {
   Swords, 
   Trophy, 
   TrendingUp, 
-  User,
-  Wallet
+  User
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
+import { useTournaments } from '../../../hooks/useTournaments';
 
 // Import modular components
 import { Header } from '../../../components/layout/Header';
@@ -16,58 +16,77 @@ import { Sidebar } from '../../../components/layout/Sidebar';
 import { GameCard } from '../../../components/game/GameCard';
 import { TournamentHero } from '../../../components/tournament/TournamentHero';
 import { GameSection } from '../../../components/shared/GameSection';
+import { comingSoonGames, playableGames, ticTacToeGame } from '../../../data/games';
 
 // Import sub-pages
 import { ChallengePage } from './ChallengePage';
 import { TournamentPage } from '../tournaments/page';
 import { LeaderboardPage } from './LeaderboardPage';
 import { MePage } from '../settings/page';
-import { WalletPage } from '../wallet/page';
 
-// Import game assets
-import tictactoeLogo from '../../../assets/games/tic-tac-toe 2.svg';
-import basketballLogo from '../../../assets/games/basketball.svg';
-import snookerLogo from '../../../assets/games/snooker.svg';
-import reversiLogo from '../../../assets/games/reversi.svg';
-import archeryLogo from '../../../assets/games/archery.svg';
-import chessLogo from '../../../assets/games/chess.svg';
+const prizeBreakdown = (totalPrize: number) => {
+  const shares = [0.5, 0.25, 0.15, 0.07, 0.03];
+  return shares.map((share, index) => ({
+    rank: `${index + 1}${index === 0 ? 'ST' : index === 1 ? 'ND' : index === 2 ? 'RD' : 'TH'} PLACE`,
+    prize: Math.round(totalPrize * share),
+    color: index === 0 ? 'text-primary' : 'text-zinc-300',
+    bg: index === 0 ? 'bg-primary/10' : 'bg-zinc-900',
+  }));
+};
 
-const HomeContent = () => {
-  const prizes = [
-    { rank: '1ST PLACE', prize: 25000, color: 'text-primary', bg: 'bg-primary/10' },
-    { rank: '2ND PLACE', prize: 12500, color: 'text-zinc-300', bg: 'bg-zinc-800/50' },
-    { rank: '3RD PLACE', prize: 7500, color: 'text-amber-700', bg: 'bg-amber-900/10' },
-    { rank: '4TH PLACE', prize: 3500, color: 'text-zinc-400', bg: 'bg-zinc-900' },
-    { rank: '5TH PLACE', prize: 1500, color: 'text-zinc-500', bg: 'bg-zinc-900' },
-  ];
+const startsInLabel = (startTime?: string) => {
+  if (!startTime) return 'Soon';
+  const diffMs = new Date(startTime).getTime() - Date.now();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return 'Live now';
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+  return `${hours}h ${minutes}m`;
+};
+
+const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: boolean; onTournamentClick: () => void }) => {
+  const { tournaments } = useTournaments(isAuthenticated);
+  const featuredTournament = tournaments.find((tournament) =>
+    ['registration_open', 'active', 'live', 'upcoming'].includes(tournament.status),
+  );
+  const fallbackTournament = {
+    name: 'Ultimate Tic Tac Toe Cup',
+    description: 'Enter the headline weekend bracket, climb the table, and fight for a live top-5 prize pool.',
+    startTime: undefined,
+    entryFee: 500,
+    participants: 128,
+    maxParticipants: 256,
+    prizePool: 50000,
+  };
+  const tournament = featuredTournament || fallbackTournament;
+  const prizes = prizeBreakdown(tournament.prizePool);
 
   return (
     <div className="px-4 pb-24 space-y-6 md:px-6">
       <div className="pt-6">
         <TournamentHero 
-          title="Ultimate Tic Tac Toe Cup"
-          description="Enter the headline weekend bracket, climb the table, and fight for a live top-5 prize pool."
-          startsIn="02:45:30"
-          entryFee={500}
-          joinedUsers={128}
-          maxParticipants={256}
-          totalPrize={50000}
+          title={tournament.name}
+          description={tournament.description || fallbackTournament.description}
+          startsIn={startsInLabel(tournament.startTime)}
+          entryFee={tournament.entryFee}
+          joinedUsers={tournament.participants}
+          maxParticipants={tournament.maxParticipants}
+          totalPrize={tournament.prizePool}
           prizes={prizes}
-          gameImage={tictactoeLogo}
-          onEnter={() => window.location.assign('/matchmaking')}
+          gameImage={ticTacToeGame.image}
+          onEnter={onTournamentClick}
         />
       </div>
 
       <GameSection title="Hot Game">
-        <GameCard image={tictactoeLogo} label="Tic Tac Toe" to="/matchmaking" />
+        {playableGames.map((game) => (
+          <GameCard key={game.id} image={game.image} label={game.label} to={game.route} />
+        ))}
       </GameSection>
 
       <GameSection title="Coming Soon">
-        <GameCard image={basketballLogo} disabled label="Basketball" />
-        <GameCard image={snookerLogo} disabled label="Snooker" />
-        <GameCard image={reversiLogo} disabled label="Reversi" />
-        <GameCard image={archeryLogo} disabled label="Archery" />
-        <GameCard image={chessLogo} disabled label="Chess" />
+        {comingSoonGames.map((game) => (
+          <GameCard key={game.id} image={game.image} disabled label={game.label} />
+        ))}
       </GameSection>
     </div>
   );
@@ -84,19 +103,17 @@ export const HomePage = () => {
     { id: 'challenge', icon: Swords, label: 'Challenge' },
     { id: 'tournament', icon: Trophy, label: 'Tournament' },
     { id: 'leaderboard', icon: TrendingUp, label: 'Leaderboard' },
-    { id: 'wallet', icon: Wallet, label: 'Wallet' },
     { id: 'me', icon: User, label: 'Me' },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <HomeContent />;
+      case 'home': return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
       case 'challenge': return <ChallengePage />;
       case 'tournament': return <TournamentPage />;
       case 'leaderboard': return <LeaderboardPage />;
-      case 'wallet': return <WalletPage />;
       case 'me': return <MePage />;
-      default: return <HomeContent />;
+      default: return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
     }
   };
 

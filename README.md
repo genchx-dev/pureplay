@@ -92,8 +92,7 @@ Current note: backend tests run successfully but there are currently `0` tests.
 
 ## Implemented MVP Flows
 
-- Register and login with DRF token auth.
-- Registration UI collects phone number for future challenge notifications; the current backend register payload still uses username, email, and password.
+- Register and login with DRF token auth (including phone number persistence).
 - Restore current user from `/api/auth/profile/`.
 - Frontend protected routes using the stored token.
 - Dashboard navigation with Home, Challenge, Tournament, Leaderboard, and Me tabs.
@@ -109,7 +108,7 @@ Current note: backend tests run successfully but there are currently `0` tests.
 - Wallet money movement is still placeholder-level in the active backend.
 - Stakes are shown in matchmaking but are not settled through a real wallet ledger.
 - Tournament join/payment and dynamic prize-pool updates are UI-level only until tournament backend endpoints are implemented.
-- Phone-number persistence and challenge phone notifications are planned backend work.
+- Challenge phone notifications are planned backend work (phone-number persistence is now supported).
 - Matchmaking uses local cache state, so it is suitable for local MVP testing, not production scale.
 - The challenge flow creates a match immediately; it does not yet implement real opponent acceptance.
 - Production settings need hardening before deployment.
@@ -118,7 +117,26 @@ Current note: backend tests run successfully but there are currently `0` tests.
 
 - `docs/api-contract.md`: frontend/backend route, payload, auth, and websocket contract.
 - `docs/backend-partner-handoff.md`: backend implementation priorities and current frontend expectations.
+- `docs/project-progress.md`: shared progress tracker for frontend, backend, game catalog, and integration status.
+- `docs/remaining-tasks.md`: exhaustive breakdown of remaining frontend and backend tasks to complete the MVP.
+
+## Frontend Coordination Notes
+
+The frontend game list is centralized in:
+
+```text
+frontend/src/data/games.ts
+```
+
+Use that file when adding or changing game availability so the homepage, game screen, docs, and backend planning stay aligned.
+
+Current frontend status:
+
+- Tic Tac Toe is the only playable MVP game.
+- Coming-soon game assets are visible from the shared game catalog.
+- Tournament, leaderboard, wallet movement, ranking, and profile history screens still contain placeholder/static data until backend endpoints are implemented.
+- Wallet deposit and withdrawal actions remain disabled until the backend ledger is real.
 
 ## Documentation Maintenance
 
-When code changes affect setup, routes, payloads, auth, environment variables, run commands, or major verified flows, update this README in the same change. Keep `docs/api-contract.md` aligned with the frontend services and active backend behavior.
+When code changes affect setup, routes, payloads, auth, environment variables, run commands, major verified flows, game availability, or feature readiness, update this README in the same change. Keep `docs/api-contract.md` and `docs/project-progress.md` aligned with the frontend services and active backend behavior.

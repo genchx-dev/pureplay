@@ -61,6 +61,7 @@ export const useTicTacToeDemo = () => {
     playerSymbol: currentPlayer,
     winner,
     error: null,
+    payout: null,
     sendMove,
     reconnect,
   };

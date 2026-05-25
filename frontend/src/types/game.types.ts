@@ -30,4 +30,8 @@ export interface MatchEvent {
   winner?: PlayerSymbol | 'draw';
   turnEndsAt?: string;
   message?: string;
+  payout?: {
+    winnerAmount?: number;
+    platformFee?: number;
+  };
 }

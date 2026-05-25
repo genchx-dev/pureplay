@@ -39,6 +39,7 @@ export const handleWSMessage = (event: MessageEvent) => {
         console.log('Game Over:', data.winner);
         if (data.board) gameStore.setBoard(data.board);
         if (data.winner) gameStore.setWinner(data.winner);
+        gameStore.setPayout(data.payout || null);
         gameStore.setStatus(data.winner === 'draw' ? 'draw' : 'finished');
         gameStore.setTimeLeft(0);
         break;

@@ -2,6 +2,21 @@ import { create } from 'zustand';
 import { tournamentApi } from '../services/api/tournament.api';
 import type { Tournament } from '../types/tournament.types';
 
+type TournamentApiResponse = Tournament & {
+  registration_deadline?: string;
+  is_joined?: boolean;
+};
+
+const normalizeTournament = (tournament: TournamentApiResponse): Tournament => ({
+  ...tournament,
+  entryFee: Number(tournament.entryFee),
+  prizePool: Number(tournament.prizePool),
+  participants: Number(tournament.participants),
+  maxParticipants: Number(tournament.maxParticipants),
+  registrationDeadline: tournament.registrationDeadline || tournament.registration_deadline,
+  isJoined: tournament.isJoined ?? tournament.is_joined ?? false,
+});
+
 interface TournamentState {
   tournaments: Tournament[];
   loading: boolean;
@@ -18,7 +33,7 @@ export const useTournamentStore = create<TournamentState>((set) => ({
     set({ loading: true });
     try {
       const { data } = await tournamentApi.getTournaments();
-      set({ tournaments: data, loading: false, error: null });
+      set({ tournaments: data.map((tournament) => normalizeTournament(tournament as TournamentApiResponse)), loading: false, error: null });
     } catch (error) {
       console.error('Failed to fetch tournaments', error);
       set({ loading: false, error: 'Could not load tournaments' });

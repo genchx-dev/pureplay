@@ -17,6 +17,7 @@ def auth_payload(user):
             'tier': getattr(user, 'tier', 'Bronze'),
             'rank': getattr(user, 'rank', 1000),
             'avatar': getattr(user, 'avatar', None),
+            'phone': getattr(user, 'phone_number', None),
         },
     }
 

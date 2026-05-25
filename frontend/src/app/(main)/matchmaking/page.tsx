@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { ArrowLeft, Bot, Loader2, RefreshCw, Swords, Users } from 'lucide-react';
 import { matchmakingApi } from '../../../services/api/matchmaking.api';
+import { useAuth } from '../../../hooks/useAuth';
+import { useWallet } from '../../../hooks/useWallet';
 import type { AvailablePlayer, MatchmakingMode, OpenMatch } from '../../../types/matchmaking.types';
+
+const formatMoney = (amount: number) => `NGN ${amount.toLocaleString()}`;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const data = error instanceof AxiosError ? error.response?.data : null;
+  if (typeof data === 'string') return data;
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+  return fallback;
+};
 
 export const MatchmakingPage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { balance = 0, fetchBalance, fetchTransactions } = useWallet(isAuthenticated);
   const [mode, setMode] = useState<MatchmakingMode>('quick_match');
   const [stake, setStake] = useState(500);
   const [status, setStatus] = useState<'idle' | 'searching' | 'waiting' | 'challenging' | 'error'>('idle');
@@ -17,6 +32,11 @@ export const MatchmakingPage = () => {
   const [openMatches, setOpenMatches] = useState<OpenMatch[]>([]);
   const [openMatchesLoading, setOpenMatchesLoading] = useState(false);
   const [acceptingMatchId, setAcceptingMatchId] = useState<string | null>(null);
+  const hasEnoughBalance = balance >= stake;
+
+  const refreshWallet = useCallback(async () => {
+    await Promise.allSettled([fetchBalance(), fetchTransactions()]);
+  }, [fetchBalance, fetchTransactions]);
 
   const loadOpenMatches = useCallback(async (silent = false) => {
     if (!silent) setOpenMatchesLoading(true);
@@ -41,12 +61,13 @@ export const MatchmakingPage = () => {
     });
 
     if (data.status === 'matched' && data.matchId) {
+      await refreshWallet();
       navigate(`/game/${data.matchId}`);
       return true;
     }
 
     return false;
-  }, [navigate, stake]);
+  }, [navigate, refreshWallet, stake]);
 
   useEffect(() => {
     if (mode !== 'challenge') return;
@@ -140,6 +161,12 @@ export const MatchmakingPage = () => {
   };
 
   const joinQueue = async () => {
+    if (!hasEnoughBalance) {
+      setStatus('error');
+      setMessage(`Insufficient balance for a ${formatMoney(stake)} stake. Deposit funds or choose a lower stake.`);
+      return;
+    }
+
     setStatus('searching');
     setMessage('Searching for open challenges.');
 
@@ -151,17 +178,25 @@ export const MatchmakingPage = () => {
     } catch (error) {
       console.error('Failed to join matchmaking queue', error);
       setStatus('error');
-      setMessage('Quick Match is unavailable right now. Try again shortly.');
+      setMessage(getErrorMessage(error, 'Quick Match is unavailable right now. Try again shortly.'));
     }
   };
 
-  const acceptOpenMatch = async (queueId: string) => {
+  const acceptOpenMatch = async (match: OpenMatch) => {
+    if (balance < match.stake) {
+      setStatus('error');
+      setMessage(`Insufficient balance to accept a ${formatMoney(match.stake)} challenge.`);
+      return;
+    }
+
+    const queueId = match.id;
     setAcceptingMatchId(queueId);
     setMessage('Accepting challenge.');
 
     try {
       const { data } = await matchmakingApi.acceptOpenMatch({ queueId });
       if (data.status === 'matched' && data.matchId) {
+        await refreshWallet();
         navigate(`/game/${data.matchId}`);
         return;
       }
@@ -170,13 +205,19 @@ export const MatchmakingPage = () => {
     } catch (error) {
       console.error('Failed to accept open match', error);
       setStatus('error');
-      setMessage('Could not accept that challenge. Refresh the list and try again.');
+      setMessage(getErrorMessage(error, 'Could not accept that challenge. Refresh the list and try again.'));
     } finally {
       setAcceptingMatchId(null);
     }
   };
 
   const challengePlayer = async (opponentId: string) => {
+    if (!hasEnoughBalance) {
+      setStatus('error');
+      setMessage(`Insufficient balance for a ${formatMoney(stake)} stake. Deposit funds or choose a lower stake.`);
+      return;
+    }
+
     setActiveOpponentId(opponentId);
     setStatus('challenging');
     setMessage('Sending challenge request.');
@@ -189,6 +230,7 @@ export const MatchmakingPage = () => {
       });
 
       if (data.status === 'matched' && data.matchId) {
+        await refreshWallet();
         navigate(`/game/${data.matchId}`);
         return;
       }
@@ -198,7 +240,7 @@ export const MatchmakingPage = () => {
     } catch (error) {
       console.error('Failed to challenge player', error);
       setStatus('error');
-      setMessage('Challenge flow is unavailable right now. Try again shortly.');
+      setMessage(getErrorMessage(error, 'Challenge flow is unavailable right now. Try again shortly.'));
     } finally {
       setActiveOpponentId(null);
     }
@@ -259,6 +301,11 @@ export const MatchmakingPage = () => {
             <p className={`mt-3 max-w-2xl text-sm font-medium ${status === 'error' ? 'text-red-400' : 'text-zinc-400'}`}>
               {message}
             </p>
+            {mode !== 'bot' && (
+              <div className="mt-4 inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-primary">
+                Balance {formatMoney(balance)}
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -287,17 +334,22 @@ export const MatchmakingPage = () => {
                   <button
                     key={option}
                     onClick={() => handleStakeChange(option)}
-                    disabled={status === 'searching' || status === 'challenging' || status === 'waiting'}
+                    disabled={status === 'searching' || status === 'challenging' || status === 'waiting' || option > balance}
                     className={`rounded-2xl border px-5 py-3 font-black transition-all ${
                       stake === option
                         ? 'border-primary bg-primary text-black'
                         : 'border-border bg-card text-zinc-300 hover:border-primary/50'
                     } disabled:opacity-60`}
                   >
-                    N{option.toLocaleString()}
+                    {formatMoney(option)}
                   </button>
                 ))}
               </div>
+              {!hasEnoughBalance && (
+                <div className="mt-3 text-xs font-bold text-red-400">
+                  Your balance is below this stake. Choose a lower stake or deposit funds.
+                </div>
+              )}
             </div>
           )}
 
@@ -321,7 +373,7 @@ export const MatchmakingPage = () => {
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <button
                   onClick={joinQueue}
-                  disabled={isQueueBusy}
+                  disabled={isQueueBusy || !hasEnoughBalance}
                   className="min-w-56 rounded-2xl bg-primary px-8 py-4 font-black uppercase tracking-widest text-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:hover:scale-100"
                 >
                   {isQueueBusy ? 'Searching' : 'Search Matches'}
@@ -358,7 +410,7 @@ export const MatchmakingPage = () => {
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Open Challenges</div>
                     <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                      Stake N{stake.toLocaleString()}
+                      Stake {formatMoney(stake)}
                     </div>
                   </div>
 
@@ -386,16 +438,16 @@ export const MatchmakingPage = () => {
                               </div>
                             </div>
                             <div className="rounded-full bg-primary px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-black">
-                              N{match.stake.toLocaleString()}
+                              {formatMoney(match.stake)}
                             </div>
                           </div>
 
                           <button
-                            onClick={() => acceptOpenMatch(match.id)}
-                            disabled={acceptingMatchId === match.id}
+                            onClick={() => acceptOpenMatch(match)}
+                            disabled={acceptingMatchId === match.id || balance < match.stake}
                             className="mt-5 w-full rounded-2xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
                           >
-                            {acceptingMatchId === match.id ? 'Accepting...' : `Accept Challenge N${match.stake.toLocaleString()}`}
+                            {acceptingMatchId === match.id ? 'Accepting...' : `Accept Challenge ${formatMoney(match.stake)}`}
                           </button>
                         </div>
                       ))}
@@ -432,7 +484,7 @@ export const MatchmakingPage = () => {
                           {player.tier || 'Bronze'} / Rank {player.rank || 1000}
                         </div>
                         <div className="mt-3 text-sm text-zinc-400">
-                          Preferred stake: N{(player.preferredStake || stake).toLocaleString()}
+                          Preferred stake: {formatMoney(player.preferredStake || stake)}
                         </div>
                       </div>
                       <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
@@ -442,10 +494,10 @@ export const MatchmakingPage = () => {
 
                     <button
                       onClick={() => challengePlayer(player.id)}
-                      disabled={status === 'challenging' && activeOpponentId === player.id}
+                      disabled={(status === 'challenging' && activeOpponentId === player.id) || !hasEnoughBalance}
                       className="mt-5 w-full rounded-2xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
                     >
-                      {status === 'challenging' && activeOpponentId === player.id ? 'Sending...' : `Challenge for N${stake.toLocaleString()}`}
+                      {status === 'challenging' && activeOpponentId === player.id ? 'Sending...' : `Challenge for ${formatMoney(stake)}`}
                     </button>
                   </div>
                 ))}

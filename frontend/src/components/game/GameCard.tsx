@@ -21,7 +21,7 @@ export const GameCard = ({
   const content = (
     <div className={`w-20 h-20 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-lg border flex items-center justify-center transition-all flex-shrink-0 overflow-hidden group ${disabled ? 'border-zinc-800 border-dashed cursor-not-allowed' : 'border-zinc-700 hover:border-primary cursor-pointer'}`}>
       {image ? (
-        <img src={image} alt={label || "Game"} className={`w-full h-full object-cover transition-transform duration-300 ${!disabled && 'group-hover:scale-110'}`} />
+        <img src={image} alt={label || "Game"} className={`h-full w-full object-contain p-2 transition-transform duration-300 ${!disabled && 'group-hover:scale-110'}`} />
       ) : (
         <Icon className={color} />
       )}

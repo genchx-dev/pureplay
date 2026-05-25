@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import type { BoardState, PlayerSymbol, GameStatus } from '../types/game.types';
+import type { BoardState, PlayerSymbol, GameStatus, MatchEvent } from '../types/game.types';
+
+type GamePayout = NonNullable<MatchEvent['payout']>;
 
 interface GameStore {
   board: BoardState;
@@ -10,6 +12,7 @@ interface GameStore {
   status: GameStatus;
   timeLeft: number;
   error: string | null;
+  payout: GamePayout | null;
   decrementTimer: () => void;
   resetTimer: () => void;
   setTimeLeft: (timeLeft: number) => void;
@@ -20,6 +23,7 @@ interface GameStore {
   setPlayerSymbol: (player: PlayerSymbol | null) => void;
   setStatus: (status: GameStatus) => void;
   setError: (error: string | null) => void;
+  setPayout: (payout: GamePayout | null) => void;
   resetGame: () => void;
 }
 
@@ -32,6 +36,7 @@ export const useGameStore = create<GameStore>((set) => ({
   status: 'waiting',
   timeLeft: 10,
   error: null,
+  payout: null,
   
   decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
   resetTimer: () => set({ timeLeft: 10 }),
@@ -43,6 +48,7 @@ export const useGameStore = create<GameStore>((set) => ({
   setPlayerSymbol: (playerSymbol) => set({ playerSymbol }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
+  setPayout: (payout) => set({ payout }),
   // Logic for turn switching on timeout (Frontend mirror of Backend logic)
   handleTimeout: () => set((state) => ({
     currentPlayer: state.currentPlayer === 'X' ? 'O' : 'X',
@@ -56,6 +62,7 @@ export const useGameStore = create<GameStore>((set) => ({
     winner: null, 
     status: 'waiting',
     timeLeft: 10,
-    error: null
+    error: null,
+    payout: null
   }),
 }));

@@ -1,129 +1,199 @@
-import { Clock, Trophy, Users } from 'lucide-react';
-import { useTournaments } from '../../../hooks/useTournaments';
+import { Clock, Trophy, Users, Zap, Lock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
+import { useTournaments } from '../../../hooks/useTournaments';
+import type { Tournament } from '../../../types/tournament.types';
+
+const statusLabel: Record<string, string> = {
+  upcoming: 'Upcoming',
+  registration_open: 'Registration Open',
+  active: 'Live',
+  live: 'Live',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+const formatMoney = (amount: number) => `NGN ${amount.toLocaleString()}`;
+
+const formatDateTime = (dateString: string) => {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) return dateString;
+  return parsed.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const tournamentDescription = (tournament: Tournament) =>
+  tournament.description || `${tournament.gameType} competition with locked entry and backend-managed registration.`;
 
 export const TournamentPage = () => {
   const { isAuthenticated } = useAuth();
   const { tournaments, loading, error, joinTournament } = useTournaments(isAuthenticated);
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString(undefined, { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
-  const activeTournaments = tournaments.filter(t => t.status === 'registration_open' || t.status === 'live' || t.status === 'active');
-  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming');
+  const liveTournaments = tournaments.filter((tournament) =>
+    ['registration_open', 'active', 'live'].includes(tournament.status),
+  );
+  const upcomingTournaments = tournaments.filter((tournament) => tournament.status === 'upcoming');
 
   return (
-    <div className="px-6 pb-24 pt-6 space-y-8 max-w-4xl mx-auto">
-      <header>
-        <h1 className="text-3xl font-shrikhand uppercase tracking-widest text-primary">Tournaments</h1>
-        <p className="text-zinc-500 text-sm mt-2 font-medium">Join scheduled events, compete for the pot, and climb the ranks.</p>
-      </header>
+    <div className="px-4 pb-24 pt-6 space-y-8 max-w-2xl mx-auto">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <Trophy size={20} className="text-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-black uppercase tracking-widest text-foreground">Tournaments</h1>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Compete / Win / Rise</p>
+        </div>
+      </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-red-400 text-sm font-bold">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">
           {error}
         </div>
       )}
 
       <section>
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-1.5 h-6 bg-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]" />
-          <h2 className="text-xl font-black uppercase tracking-widest text-white">Active Now</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+          <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Active Now</h2>
         </div>
 
         {loading && tournaments.length === 0 && (
-          <div className="text-center py-12 text-zinc-500 font-bold uppercase tracking-widest text-xs">
-            Scanning for active events...
+          <div className="rounded-2xl border border-zinc-800 bg-card p-6 text-center text-sm font-bold uppercase tracking-widest text-zinc-500">
+            Loading tournaments...
           </div>
         )}
 
-        {!loading && activeTournaments.length === 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-10 text-center">
-            <Trophy className="mx-auto text-zinc-700 mb-4" size={40} />
-            <p className="text-zinc-500 font-bold">No active tournaments right now. Check back soon!</p>
+        {!loading && liveTournaments.length === 0 && (
+          <div className="rounded-2xl border border-zinc-800 bg-card p-6 text-center text-sm text-zinc-500 font-medium">
+            No active tournaments right now. Check back soon.
           </div>
         )}
 
-        <div className="grid gap-6">
-          {activeTournaments.map(t => (
-            <div key={t.id} className="bg-gradient-to-br from-zinc-900 to-black rounded-[2rem] p-6 border border-primary/20 shadow-2xl relative overflow-hidden group hover:border-primary/40 transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
-              
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 relative z-10">
-                <div>
-                  <h3 className="font-black text-xl text-white group-hover:text-primary transition-colors">{t.name}</h3>
-                  <p className="text-zinc-500 text-xs font-medium mt-1 uppercase tracking-widest">{t.gameType} • {t.status.replace('_', ' ')}</p>
-                </div>
-                <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
-                  <Clock size={14} /> {formatTime(t.startTime)}
-                </div>
-              </div>
+        <div className="space-y-4">
+          {liveTournaments.map((tournament) => {
+            const fillPct = Math.min(100, Math.round((tournament.participants / tournament.maxParticipants) * 100));
+            const isFull = tournament.participants >= tournament.maxParticipants;
+            const canJoin = tournament.status === 'registration_open' && !isFull && !tournament.isJoined;
 
-              <div className="grid grid-cols-3 gap-4 mb-6 relative z-10">
-                <div className="bg-black/40 rounded-2xl p-4 border border-zinc-800/50 text-center">
-                  <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Prize Pool</div>
-                  <div className="text-lg font-black text-primary font-mono">₦{t.prizePool.toLocaleString()}</div>
-                </div>
-                <div className="bg-black/40 rounded-2xl p-4 border border-zinc-800/50 text-center">
-                  <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Entry Fee</div>
-                  <div className="text-lg font-black text-white font-mono">₦{t.entryFee.toLocaleString()}</div>
-                </div>
-                <div className="bg-black/40 rounded-2xl p-4 border border-zinc-800/50 text-center">
-                  <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Slots</div>
-                  <div className="text-lg font-black text-white font-mono">{t.participants}/{t.maxParticipants}</div>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => joinTournament(t.id)}
-                disabled={loading || t.participants >= t.maxParticipants}
-                className="w-full bg-primary text-black font-black py-4 rounded-2xl shadow-xl shadow-primary/10 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 uppercase tracking-widest text-sm"
+            return (
+              <div
+                key={tournament.id}
+                className="rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-zinc-900 to-black shadow-xl shadow-red-500/10 overflow-hidden"
               >
-                {t.participants >= t.maxParticipants ? 'Tournament Full' : 'Join Tournament'}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/20 px-5 py-2">
+                  <div className="flex items-center gap-2 text-red-400 text-[10px] font-black uppercase tracking-widest">
+                    <Zap size={12} className="animate-pulse" />
+                    {statusLabel[tournament.status] || tournament.status}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-red-400 text-[10px] font-bold">
+                    <Clock size={11} />
+                    {formatDateTime(tournament.startTime)}
+                  </div>
+                </div>
+
+                <div className="p-5">
+                  <h3 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">{tournament.name}</h3>
+                  <p className="text-sm text-zinc-400 leading-5 mb-5">{tournamentDescription(tournament)}</p>
+
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    <div className="bg-zinc-800/50 rounded-2xl p-3 text-center border border-zinc-700/40">
+                      <div className="text-[9px] text-zinc-500 uppercase font-bold mb-1">Prize Pool</div>
+                      <div className="text-primary font-black text-sm">{formatMoney(tournament.prizePool)}</div>
+                    </div>
+                    <div className="bg-zinc-800/50 rounded-2xl p-3 text-center border border-zinc-700/40">
+                      <div className="text-[9px] text-zinc-500 uppercase font-bold mb-1">Entry</div>
+                      <div className="text-foreground font-black text-sm">{formatMoney(tournament.entryFee)}</div>
+                    </div>
+                    <div className="bg-zinc-800/50 rounded-2xl p-3 text-center border border-zinc-700/40">
+                      <div className="text-[9px] text-zinc-500 uppercase font-bold mb-1">Players</div>
+                      <div className="text-foreground font-black text-sm">{tournament.participants}/{tournament.maxParticipants}</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-5">
+                    <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase mb-1.5">
+                      <span className="flex items-center gap-1"><Users size={9} /> {tournament.participants} joined</span>
+                      <span>{fillPct}% full</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${fillPct}%` }} />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => joinTournament(tournament.id)}
+                    disabled={loading || !canJoin}
+                    className="w-full rounded-2xl bg-primary px-5 py-3.5 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                  >
+                    {tournament.isJoined ? 'Already Joined' : isFull ? 'Tournament Full' : tournament.status === 'registration_open' ? 'Enter Tournament' : 'Registration Closed'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {upcomingTournaments.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-1.5 h-6 bg-zinc-700 rounded-full" />
-            <h2 className="text-xl font-black uppercase tracking-widest text-zinc-500">Upcoming</h2>
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={13} className="text-zinc-500" />
+          <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Upcoming</h2>
+        </div>
+
+        {!loading && upcomingTournaments.length === 0 && (
+          <div className="rounded-2xl border border-zinc-800 bg-card p-6 text-center text-sm text-zinc-500 font-medium">
+            No upcoming tournaments are scheduled yet.
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {upcomingTournaments.map(t => (
-              <div key={t.id} className="bg-zinc-900/30 rounded-3xl p-5 border border-zinc-800/50">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-white">{t.name}</h3>
-                  <span className="text-[10px] font-black text-zinc-600 bg-zinc-800 px-2 py-1 rounded-md uppercase">{t.gameType}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-zinc-500">
-                    <div className="flex items-center gap-1 text-xs font-bold">
-                      <Users size={14} /> {t.maxParticipants}
+        )}
+
+        <div className="space-y-4">
+          {upcomingTournaments.map((tournament) => {
+            const fillPct = Math.min(100, Math.round((tournament.participants / tournament.maxParticipants) * 100));
+
+            return (
+              <div key={tournament.id} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-black uppercase tracking-wide text-foreground truncate">{tournament.name}</h3>
+                      <div className="flex items-center gap-1 shrink-0 bg-zinc-800 rounded-full px-2 py-0.5 text-[8px] font-bold text-zinc-400 uppercase">
+                        <Lock size={8} /> Upcoming
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-bold">
-                      <Trophy size={14} /> ₦{t.prizePool.toLocaleString()}
-                    </div>
+                    <p className="text-xs text-zinc-500 leading-5">{tournamentDescription(tournament)}</p>
                   </div>
-                  <div className="text-[10px] font-black text-primary uppercase tracking-widest">
-                    Starts {new Date(t.startTime).toLocaleDateString()}
+                  <div className="shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-tighter bg-zinc-800 text-zinc-500">
+                    {formatMoney(tournament.entryFee)}
                   </div>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-[10px] text-zinc-500 font-bold mb-4">
+                  <span className="flex items-center gap-1"><Clock size={10} /> {formatDateTime(tournament.startTime)}</span>
+                  <span className="flex items-center gap-1"><Trophy size={10} /> {formatMoney(tournament.prizePool)} pool</span>
+                  <span className="flex items-center gap-1"><Users size={10} /> {tournament.participants}/{tournament.maxParticipants}</span>
+                </div>
+
+                <div className="mb-4">
+                  <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-zinc-600 transition-all" style={{ width: `${fillPct}%` }} />
+                  </div>
+                </div>
+
+                <button
+                  disabled
+                  className="w-full rounded-2xl font-black py-3 text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800"
+                >
+                  Registration Opens Soon <ChevronRight size={14} />
+                </button>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 };

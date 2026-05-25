@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AxiosError } from 'axios';
 import { Wallet, ArrowDownLeft, ArrowUpRight, Plus, History, Gamepad2, Trophy, Clock, X } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -16,6 +17,7 @@ export const WalletPage = () => {
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const gameHistory = [
     { id: 1, game: 'Tic Tac Toe', opponent: 'ShadowMaster', result: 'WIN', earnings: 950, date: 'May 13, 2026', time: '03:25 PM' },
@@ -30,12 +32,21 @@ export const WalletPage = () => {
     setAccountNumber('');
     setAccountName('');
     setFormError(null);
+    setSuccessMessage(null);
   };
 
   const closeWalletAction = () => {
     if (loading) return;
     setWalletAction(null);
     setFormError(null);
+  };
+
+  const getErrorMessage = (error: unknown) => {
+    const data = error instanceof AxiosError ? error.response?.data : null;
+    if (typeof data === 'string') return data;
+    if (data?.error) return data.error;
+    if (data?.message) return data.message;
+    return 'Wallet action failed. Try again.';
   };
 
   const submitWalletAction = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -54,19 +65,25 @@ export const WalletPage = () => {
 
     setFormError(null);
 
-    if (walletAction === 'deposit') {
-      await deposit(numericAmount);
-    }
+    try {
+      if (walletAction === 'deposit') {
+        await deposit(numericAmount);
+        setSuccessMessage(`Deposit of NGN ${numericAmount.toLocaleString()} completed.`);
+      }
 
-    if (walletAction === 'withdraw') {
-      await withdraw(numericAmount, {
-        bankName: bankName.trim(),
-        accountNumber: accountNumber.trim(),
-        accountName: accountName.trim(),
-      });
-    }
+      if (walletAction === 'withdraw') {
+        await withdraw(numericAmount, {
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          accountName: accountName.trim(),
+        });
+        setSuccessMessage(`Withdrawal of NGN ${numericAmount.toLocaleString()} completed.`);
+      }
 
-    setWalletAction(null);
+      setWalletAction(null);
+    } catch (error) {
+      setFormError(getErrorMessage(error));
+    }
   };
 
   const formatTransactionDate = (date?: string) => {
@@ -87,14 +104,14 @@ export const WalletPage = () => {
               <Wallet className="text-primary" size={20} />
               <span className="text-zinc-500 text-xs font-black uppercase tracking-widest">Available Balance</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-primary font-mono">₦{balance.toLocaleString()}</h1>
+            <h1 className="text-4xl md:text-5xl font-black text-primary font-mono">NGN {balance.toLocaleString()}</h1>
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={() => openWalletAction('deposit')}
               disabled={loading || !isAuthenticated || !walletActionsEnabled}
-              title="Deposit is pending backend wallet ledger support"
+              title="Deposit funds"
               className="flex-1 md:flex-none bg-primary text-black px-8 py-3 rounded-xl font-black flex items-center justify-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
             >
               <Plus size={18} strokeWidth={3} />
@@ -103,7 +120,7 @@ export const WalletPage = () => {
             <button
               onClick={() => openWalletAction('withdraw')}
               disabled={loading || !isAuthenticated || !walletActionsEnabled}
-              title="Withdrawal is pending backend wallet ledger support"
+              title="Withdraw funds"
               className="flex-1 md:flex-none bg-zinc-900 text-white px-8 py-3 rounded-xl font-black border border-zinc-800 flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all disabled:opacity-60"
             >
               <ArrowUpRight size={18} />
@@ -116,6 +133,12 @@ export const WalletPage = () => {
       {error && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-sm font-bold text-green-300">
+          {successMessage}
         </div>
       )}
 
@@ -174,7 +197,7 @@ export const WalletPage = () => {
                   </div>
                   <div className="text-right">
                     <div className={`text-sm font-black ${positive ? 'text-green-500' : 'text-zinc-300'}`}>
-                      {positive ? '+' : '-'}₦{Math.abs(tx.amount).toLocaleString()}
+                      {positive ? '+' : '-'}NGN {Math.abs(tx.amount).toLocaleString()}
                     </div>
                     <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">{tx.status}</div>
                   </div>
@@ -198,13 +221,13 @@ export const WalletPage = () => {
                       {game.game} <span className="text-zinc-500 font-medium">vs</span> {game.opponent}
                     </div>
                     <div className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 mt-0.5">
-                      <Clock size={10} /> {game.date} • {game.time}
+                      <Clock size={10} /> {game.date} at {game.time}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className={`text-sm font-black ${game.earnings > 0 ? 'text-primary' : game.earnings < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                    {game.earnings > 0 ? '+' : ''}₦{game.earnings.toLocaleString()}
+                    {game.earnings > 0 ? '+' : ''}NGN {game.earnings.toLocaleString()}
                   </div>
                   <div className={`text-[9px] font-black uppercase tracking-widest mt-0.5 ${
                     game.result === 'WIN' ?

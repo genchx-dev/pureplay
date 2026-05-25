@@ -13,4 +13,5 @@ def get_profile(request):
         'tier': getattr(user, 'tier', 'Bronze'),
         'rank': getattr(user, 'rank', 1000),
         'avatar': getattr(user, 'avatar', None),
+        'phone': getattr(user, 'phone_number', None),
     })

@@ -89,7 +89,7 @@ export const LoginPage = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="••••••••"
+                placeholder="********"
                 className="w-full p-4 pl-12 pr-12 rounded-2xl bg-background border border-border text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-zinc-700 font-medium"
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}

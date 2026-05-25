@@ -5,6 +5,7 @@ export interface User {
   tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   rank?: number;
   avatar?: string;
+  phone?: string;
 }
 
 export interface AuthResponse {

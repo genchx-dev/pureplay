@@ -59,7 +59,7 @@ export const Sidebar = ({
           <div className={`bg-black/40 rounded-xl p-4 border border-border flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}>
             <div className="flex items-center gap-2">
               <Wallet size={18} className="text-primary" />
-              {!isCollapsed && <span className="text-sm font-semibold font-mono">₦{balance.toLocaleString()}</span>}
+              {!isCollapsed && <span className="text-sm font-semibold font-mono">NGN {balance.toLocaleString()}</span>}
             </div>
           </div>
         </div>

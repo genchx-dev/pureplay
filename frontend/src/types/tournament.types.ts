@@ -1,13 +1,16 @@
 export interface Tournament {
   id: string;
   name: string;
+  description?: string;
   gameType: string;
   entryFee: number;
   prizePool: number;
   startTime: string;
+  registrationDeadline?: string;
   participants: number;
   maxParticipants: number;
-  status: 'upcoming' | 'live' | 'completed';
+  status: 'upcoming' | 'registration_open' | 'active' | 'live' | 'completed' | 'cancelled';
+  isJoined?: boolean;
 }
 
 export interface PrizeDistribution {

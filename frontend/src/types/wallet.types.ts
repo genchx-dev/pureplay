@@ -9,7 +9,7 @@ export interface Transaction {
 }
 
 export interface WalletBalance {
-  balance: number;
+  balance: number | string;
   lockedBalance?: number;
 }
 

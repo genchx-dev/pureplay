@@ -14,19 +14,26 @@ export const Header = ({ isAuthenticated, balance }: HeaderProps) => {
           PUREPLAY
         </span>
       </Link>
-      
+
       <div className="flex items-center gap-3">
-         {isAuthenticated ? (
-            <Link to="/wallet" className="flex items-center gap-2 bg-black/90 rounded-full px-4 py-2 border border-black/20 hover:bg-black/70 transition-colors">
-              <Wallet size={18} className="text-white" />
-              <span className="font-semibold text-white">₦{balance.toLocaleString()}</span>
+        {isAuthenticated ? (
+          <Link
+            to="/wallet"
+            className="flex items-center gap-2 bg-black/90 rounded-full px-4 py-2 border border-black/20 hover:bg-black/70 transition-colors"
+          >
+            <Wallet size={18} className="text-white" />
+            <span className="font-semibold text-white">NGN {balance.toLocaleString()}</span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="px-4 py-1.5 rounded-full border-2 border-black text-black hover:bg-black/10 transition-colors font-semibold text-sm">
+              Login
             </Link>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="px-4 py-1.5 rounded-full border-2 border-black text-black hover:bg-black/10 transition-colors font-semibold text-sm">Login</Link>
-              <Link to="/register" className="px-4 py-1.5 rounded-full bg-black text-primary font-semibold hover:bg-black/90 transition-all text-sm">Sign Up</Link>
-            </div>
-          )}
+            <Link to="/register" className="px-4 py-1.5 rounded-full bg-black text-primary font-semibold hover:bg-black/90 transition-all text-sm">
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );
