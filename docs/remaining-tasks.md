@@ -80,10 +80,10 @@ The home dashboard and tournament screens are fully static. We need to implement
 - [ ] **Prize Settlement Engine**: Automate payout distribution to the top 10 (Knockout) or top 5 (Swiss Hybrid) according to specified percentages.
 
 ### Frontend Tasks
-- [ ] **Tournament List & Detail Pages**: Render list of active/upcoming tournaments.
-- [ ] **Join Action**: Hook up "Register" button, validating wallet balance against entry fee.
-- [ ] **Live Bracket Display**: Create a visual tournament bracket tree (e.g., quarterfinals, semifinals, finals).
-- [ ] **Prize Table**: Display live calculated prize pools and payouts.
+- [x] **Tournament List & Detail Pages**: Render list of active/upcoming tournaments.
+- [x] **Join Action**: Hook up "Register" button, validating wallet balance against entry fee.
+- [x] **Live Bracket Display**: Create a visual tournament bracket tree (e.g., quarterfinals, semifinals, finals).
+- [x] **Prize Table**: Display live calculated prize pools and payouts.
 
 ---
 
@@ -114,6 +114,7 @@ Tic Tac Toe is the only active game. Ten other games are planned.
   - Physics/Sync validation (Basketball, Pool).
   - Puzzle validation/scoring (Word Hunt, Anagrams).
 - [ ] **Add Game Engines**: Create validation and WebSocket consumers for new games.
+- [ ] **Live Activity / Spectator Feed**: Implement a WebSocket feed or REST endpoint returning active matches so users can see what others are playing while waiting for their match or turn.
 
 ### Frontend Tasks
 - [ ] **Game Prototypes**: Implement localized React boards/practice controllers for Basketball, Snooker, Reversi, etc.
