@@ -1,153 +1,234 @@
 # PurePlay Remaining Tasks: Frontend vs. Backend
 
-To make the **PurePlay** platform fully production-ready, we need to bridge the gaps between the current React frontend placeholders and the Django REST/Channels backend. 
+This document tracks all outstanding work to bridge the current React frontend with the Django REST/Channels backend.
 
-Below is an exhaustive breakdown of the remaining tasks, categorized by component and assigned to either the **Frontend** or **Backend**.
+**Legend:** `[ ]` = pending · `[/]` = in progress · `[x]` = done
+
+---
+
+## 🔥 Backend Priority Order
+
+| Priority | Section | Task |
+|---|---|---|
+| 1 | Auth | Persist `phone_number` on register |
+| 2 | Rankings | XP & MMR fields + post-match calculation |
+| 3 | Rankings | `GET /api/rankings/leaderboard/` |
+| 4 | Rankings | `GET /api/players/search/?q=` |
+| 5 | Rankings | `GET /api/players/{username}/` |
+| 6 | Rankings | `GET /api/matches/history/` |
+| 7 | Wallet | Real wallet schema + staking engine |
+| 8 | Challenges | Challenge lifecycle API + SMS notifications |
+| 9 | Tournaments | Tournament schema + bracket logic |
+| 10 | Games | Game engine abstraction + new games |
+| 11 | Hardening | Redis, PostgreSQL, production settings |
 
 ---
 
 ## 🔐 1. Authentication & Profile Persistence
-Currently, the registration form collects a phone number, but the backend does not persist it.
+
+The registration form already sends `phone` from the frontend — the backend just needs to save it.
 
 ### Backend Tasks
-- [ ] **Database Migration**: Add a `phone_number` field to the custom User model (or user profile).
-- [ ] **Register API**: Update `POST /api/auth/register/` to validate and save the `phone` field.
-- [ ] **Profile API**: Include `phone` in the `GET /api/auth/profile/` response.
-- [ ] **Validation**: Implement phone format validation (e.g., E.164 format).
+- [ ] **Database Migration**: Add a `phone_number` field to the custom User model (or `UserProfile`).
+- [ ] **Register API** `POST /api/auth/register/`: Accept and validate the `phone` field.
+  - Validate format: Nigerian numbers (`+234XXXXXXXXXX` or `0XXXXXXXXXX`) or E.164.
+  - Return `400` with field-level errors if invalid.
+- [ ] **Profile API** `GET /api/auth/profile/`: Include `phone` in the response payload.
+- [ ] **Auth Response Shape** — expected by frontend:
+  ```json
+  {
+    "id": 1,
+    "username": "QuantumKing",
+    "email": "user@example.com",
+    "phone": "+2348012345678",
+    "rank": 1,
+    "xp": 1200000,
+    "mmr": 1850
+  }
+  ```
 
 ### Frontend Tasks
-- [x] **API Payload Update**: Include the `phone` field in the register API call payload.
-- [x] **Profile Storage**: Store and display the user's phone number on the **Me** / Profile tab.
-- [x] **Loading & Error Handling**: Show validation errors from the backend on the registration form.
+- [x] **API Payload Update**: `phone` field included in register API call.
+- [x] **Profile Storage**: Phone number displayed on the **Me** tab.
+- [x] **Loading & Error Handling**: Backend validation errors shown on the registration form.
 
 ---
 
 ## 💰 2. Wallet Ledger & Settlements
-Currently, wallet balances are static placeholders, and transaction history is empty.
+
+Wallet balances are currently served as static placeholders. The frontend Deposit/Withdraw buttons are in place but alert-only.
 
 ### Backend Tasks
-- [ ] **Wallet Database Schema**: Create tables for `Wallet` (with `balance` and `locked_balance`) and `Transaction` records (credits, debits, stakes, payouts).
+- [ ] **Wallet Database Schema**: 
+  - `Wallet` model: `user (FK)`, `balance (Decimal)`, `locked_balance (Decimal)`.
+  - `Transaction` model: `wallet (FK)`, `amount`, `type` (`deposit|withdrawal|stake|payout|refund`), `status` (`pending|completed|failed`), `description`, `created_at`.
 - [ ] **Staking Engine**:
-  - [ ] Implement `POST /api/wallet/lock-stake/` to move funds from `balance` to `locked_balance` when entering matchmaking or joining a tournament.
-  - [ ] Implement `POST /api/wallet/settle-match/` to resolve stakes (platform fee deduction + payout to winner).
+  - [ ] `POST /api/wallet/lock-stake/` — move funds from `balance` → `locked_balance` when a match starts.
+  - [ ] `POST /api/wallet/settle-match/` — resolve match stakes: deduct 5% platform fee, credit winner.
 - [ ] **Ledger Endpoints**:
-  - [ ] Complete `POST /api/wallet/deposit/` integration (using a payment gate provider mock/live API).
-  - [ ] Complete `POST /api/wallet/withdraw/` with validations.
-  - [ ] Return real records in `GET /api/wallet/transactions/`.
+  - [ ] `POST /api/wallet/deposit/` — integrate payment gateway (mock or live Paystack/Flutterwave).
+  - [ ] `POST /api/wallet/withdraw/` — validate sufficient balance, debit wallet, log transaction.
+  - [ ] `GET /api/wallet/transactions/` — return paginated transaction history for the authenticated user.
+- [ ] **Balance Response Shape** — expected by frontend:
+  ```json
+  { "balance": 5000.00, "locked_balance": 500.00 }
+  ```
+- [ ] **Transaction Record Shape**:
+  ```json
+  {
+    "id": "tx_001",
+    "type": "deposit",
+    "amount": 2000,
+    "description": "Wallet top-up",
+    "status": "completed",
+    "createdAt": "2026-05-25T13:00:00Z"
+  }
+  ```
 
 ### Frontend Tasks
-- [x] **Enable Wallet UI**: (DEPRECATED - Wallet balance, deposits, and withdrawals have been consolidated directly into the **Me** page).
-- [x] **Transactions List**: Connect `GET /api/wallet/transactions/` to the user profile and transaction tables (fully completed on the **Me** page's transaction ledger panel).
-- [ ] **Staking Feedback**: Add UI state to show locked stakes before a match begins.
+- [x] **Wallet UI**: Deposit and Withdraw buttons live on the **Me** tab.
+- [x] **Transactions List**: Transaction ledger panel wired to `GET /api/wallet/transactions/`.
+- [ ] **Staking Feedback**: Show locked stake amount in the game room while a match is in progress.
 
 ---
 
 ## 🤝 3. Real Challenge Lifecycle & Phone Notifications
-The current matchmaking creates a match immediately. It needs to transition to a true invite-accept-decline sequence with notification integration.
+
+Matchmaking currently creates a match immediately. It needs a proper invite → accept/decline flow.
 
 ### Backend Tasks
-- [ ] **Challenge Database Model**: Track `Challenge` states (`pending`, `accepted`, `declined`, `expired`).
+- [ ] **Challenge Database Model**: `Challenge` with states `pending | accepted | declined | expired`.
+  - Fields: `challenger (FK)`, `opponent (FK)`, `game_type`, `stake`, `status`, `created_at`, `expires_at`.
 - [ ] **Challenge Lifecycle REST API**:
-  - [ ] `POST /api/matchmaking/challenge/` - Creates a pending invitation.
-  - [ ] `GET /api/matchmaking/challenges/incoming/` - Retrieves active challenges for a player.
-  - [ ] `POST /api/matchmaking/challenges/{id}/accept/` - Transitions challenge to an active Match and sets up the WebSocket.
-  - [ ] `POST /api/matchmaking/challenges/{id}/decline/` - Declines and cancels the challenge.
-- [ ] **Challenge Notifications (SMS Gateway)**: Integration hook to dispatch an SMS/notification using the opponent's registered phone number.
-- [ ] **Auto-Expiry Task**: Background scheduler (e.g., Celery or background threads) to automatically decline/expire invites after a timeout (e.g., 60 seconds).
+  - [ ] `POST /api/matchmaking/challenge/` — create a pending invitation.
+    ```json
+    { "opponent_id": 7, "game_type": "tictactoe", "stake": 500 }
+    ```
+  - [ ] `GET /api/matchmaking/challenges/incoming/` — return active incoming challenges for the authenticated user.
+  - [ ] `POST /api/matchmaking/challenges/{id}/accept/` — transition to an active `Match`, set up WebSocket room, lock stakes.
+  - [ ] `POST /api/matchmaking/challenges/{id}/decline/` — mark as `declined`, release no funds.
+- [ ] **Challenge Notifications (SMS Gateway)**: Dispatch SMS to opponent's `phone_number` when a challenge is sent.
+- [ ] **Auto-Expiry Task**: Background job (Celery beat or Django-Q) to mark challenges as `expired` after 60 seconds and refund any locked stake.
 
 ### Frontend Tasks
-- [x] **Challenge UI Flow**:
-  - [x] Implement an "Incoming Challenge" overlay modal on the Dashboard showing the opponent's name, stake, and accept/decline buttons.
-  - [x] Show a "Challenge Sent, Waiting..." state spinner to the sender with a cancel option.
-- [x] **Queue Polling / Notifications**: Listen for incoming challenges on the global websocket or long-poll.
+- [x] **Incoming Challenge Overlay**: Modal on Dashboard showing opponent name, stake, Accept/Decline buttons.
+- [x] **Waiting Spinner**: "Challenge Sent — Waiting..." spinner with Cancel option for the challenger.
+- [x] **Queue Polling**: Frontend polls `GET /api/matchmaking/challenges/incoming/` every 4 seconds.
 
 ---
 
 ## 🏆 4. Tournament Management System
-The home dashboard and tournament screens are fully static. We need to implement both the Pure Knockout and Swiss Hybrid systems.
+
+Tournament screens are fully built on the frontend but driven by static mock data.
 
 ### Backend Tasks
-- [ ] **Tournament Database Schema**: Models for `Tournament`, `TournamentParticipant`, `Round`, and `Bracket`.
+- [ ] **Tournament Database Schema**:
+  - Models: `Tournament`, `TournamentParticipant`, `Round`, `Match`, `Bracket`.
+  - Fields include: `name`, `format` (`knockout|swiss`), `entry_fee`, `prize_pool`, `status` (`upcoming|registration_open|active|completed`), `start_time`, `max_participants`.
 - [ ] **Tournament REST API**:
-  - [ ] `GET /api/tournaments/featured/` - Return the featured countdown, participants, and prize pools.
-  - [ ] `POST /api/tournaments/{id}/join/` - Process entry fee (lock stake in Wallet) and add the user.
-  - [ ] `GET /api/tournaments/{id}/prizes/` - Return the prize distribution matrix.
-- [ ] **Knockout Bracket Logic**: Handle play-in rounds when participant count is not a power of 2.
+  - [ ] `GET /api/tournaments/` — list all active/upcoming tournaments.
+  - [ ] `GET /api/tournaments/featured/` — return the headline tournament with countdown, participant count, and prize pool breakdown.
+  - [ ] `POST /api/tournaments/{id}/join/` — validate balance, lock entry fee stake, add participant.
+  - [ ] `GET /api/tournaments/{id}/bracket/` — return the live bracket tree.
+  - [ ] `GET /api/tournaments/{id}/prizes/` — return the prize distribution matrix.
+- [ ] **Knockout Bracket Logic**: Handle play-in byes when participant count is not a power of 2.
 - [ ] **Swiss Stage Matchmaking**:
-  - [ ] Implement match-point calculations (+3 for win, 0 for loss).
-  - [ ] Swiss pairing algorithm (pairing players with identical/similar records).
-  - [ ] Bracket lock and knockout-finals qualification logic.
-- [ ] **Prize Settlement Engine**: Automate payout distribution to the top 10 (Knockout) or top 5 (Swiss Hybrid) according to specified percentages.
+  - [ ] Match-point tracking (+3 win, +1 draw, 0 loss).
+  - [ ] Swiss pairing algorithm: pair players with equal/similar match points.
+  - [ ] Auto-advance top N players from Swiss stage to knockout finals.
+- [ ] **Prize Settlement Engine**: Auto-distribute prize pool to top finishers on tournament completion.
 
 ### Frontend Tasks
-- [x] **Tournament List & Detail Pages**: Render list of active/upcoming tournaments.
-- [x] **Join Action**: Hook up "Register" button, validating wallet balance against entry fee.
-- [x] **Live Bracket Display**: Create a visual tournament bracket tree (e.g., quarterfinals, semifinals, finals).
-- [x] **Prize Table**: Display live calculated prize pools and payouts.
+- [x] **Tournament List & Detail Pages**: Renders active/upcoming tournaments with entry fee, prize pool, participant count.
+- [x] **Join Action**: "Register" button validates wallet balance against entry fee.
+- [x] **Live Bracket Display**: Visual bracket tree (QF → SF → Final).
+- [x] **Prize Table**: Live prize pool breakdown per finishing position.
 
 ---
 
-## 📊 5. Rankings, MMR & Profile History
-Leaderboards and match history are currently static.
+## 📊 5. Rankings, MMR & Player Profiles
+
+Leaderboards and match history are currently driven by local mock data.
 
 ### Backend Tasks
-- [ ] **Ranking System Engine**: 
-  - [ ] Add `XP` and `MMR` fields to the User profiles.
-  - [ ] Calculate XP rewards post-match (+50 for wins, +25 for draws, +15 for losses, plus streak bonuses).
-  - [ ] Implement MMR/Elo algorithm updates for fair matchmaking.
-- [ ] **Leaderboard REST API**: `GET /api/rankings/leaderboard/` returning users ranked by XP, filtered by Tier.
-- [ ] **Match History REST API**: `GET /api/matches/history/` returning historical match results.
-- [ ] **Player Search API**: `GET /api/players/search/?q={username}` — search players by username.
-  - [ ] Case-insensitive partial match on `username` field (e.g. `?q=king` returns `QuantumKing`).
-  - [ ] Return public fields only: `username`, `rank`, `tier`, `xp`, `wins`, `losses`, `draws`, `earnings`.
-  - [ ] Exclude the requesting user from own search results.
-  - [ ] Limit results to max 20 per query.
-- [ ] **Public Player Profile API**: `GET /api/players/{username}/` — return a single player's public profile (same fields as search). Used when clicking a player row in the leaderboard or challenge list.
+- [ ] **Ranking System Engine**:
+  - [ ] Add `xp (IntegerField)` and `mmr (IntegerField)` to the User model/profile.
+  - [ ] Post-match XP awards: `+50 WIN`, `+25 DRAW`, `+15 LOSS` (+ streak bonuses up to +25 for 3-win streaks).
+  - [ ] MMR/Elo update on every match result for fair matchmaking pairing.
+- [ ] **Leaderboard REST API**: `GET /api/rankings/leaderboard/`
+  - Returns top 100 players ranked by XP descending.
+  - Supports optional `?tier=Gold` filter.
+  - Response shape per player:
+    ```json
+    {
+      "rank": 1, "username": "QuantumKing", "tier": "Ruby",
+      "xp": 1200000, "mmr": 1850,
+      "wins": 280, "losses": 32, "draws": 8, "earnings": 56000
+    }
+    ```
+- [ ] **Match History REST API**: `GET /api/matches/history/`
+  - Returns authenticated user's last 50 match results, newest first.
+  - Response shape per record:
+    ```json
+    {
+      "id": "m_001", "game": "Tic Tac Toe", "opponent": "ShadowMaster",
+      "result": "WIN", "earnings": 475, "date": "2026-05-25", "time": "14:32"
+    }
+    ```
+- [ ] **Player Search API**: `GET /api/players/search/?q={username}`
+  - Case-insensitive partial match on `username`.
+  - Excludes the requesting user from results.
+  - Max 20 results per query.
+  - Returns same public shape as leaderboard row.
+- [ ] **Public Player Profile API**: `GET /api/players/{username}/`
+  - Returns one player's public profile (same fields as search).
+  - Used by the **Player Profile Modal** when tapping a row in the Leaderboard.
 
 ### Frontend Tasks
-- [x] **Leaderboard Screen**: Fetch and render the live leaderboard on the **Leaderboard** tab (fully integrated with local mock fallback).
-- [x] **Profile Stats**: Display the user's Tier (using new 10-tier visuals), total XP, progress bar, and win/loss records on the **Me** screen.
-- [x] **Match History Feed**: Render the match history log showing opponent username, game played, stake, outcome, and date (fully integrated with local storage tracking).
-- [x] **Player Profile Modal**: Tapping any player row in the Leaderboard opens a bottom-sheet/modal showing their full tier badge, Win/Loss/Draw stats, win rate bar, total earnings, and a **Challenge** CTA that navigates directly to the Challenge tab.
-- [ ] **Player Search UI**: Add a search bar on the Leaderboard and Challenge pages so users can find opponents by username. Wire to `GET /api/players/search/?q=` once the backend endpoint is live (local mock fallback until then).
-
+- [x] **Leaderboard Screen**: Dynamic leaderboard with Top-3 podium, standings table, and "My Rank" footer.
+- [x] **Profile Stats**: Tier badge, XP progress bar, win/loss/draw stats on the **Me** tab.
+- [x] **Match History Feed**: Game history log with opponent, result, earnings, and date.
+- [x] **Player Profile Modal**: Tap any leaderboard row → bottom-sheet with badge, stats, win rate, and **Challenge** CTA.
+- [ ] **Player Search UI**: Search bar on Leaderboard + Challenge pages, wired to `GET /api/players/search/?q=`.
 
 ---
 
 ## 🎮 6. Game Catalog & Multi-Engine Scaling
-Tic Tac Toe is the only active game. Ten other games are planned.
+
+Tic Tac Toe is the only fully playable game. Ten more are planned.
 
 ### Backend Tasks
-- [ ] **State Machine Abstraction**: Define a generic game state machine interface that accommodates:
+- [ ] **State Machine Abstraction**: Generic game interface supporting:
   - Turn-based games (Chess, Checkers, Reversi).
-  - Physics/Sync validation (Basketball, Pool).
-  - Puzzle validation/scoring (Word Hunt, Anagrams).
-- [ ] **Add Game Engines**: Create validation and WebSocket consumers for new games.
-- [ ] **Live Activity / Spectator Feed**: Implement a WebSocket feed or REST endpoint returning active matches so users can see what others are playing while waiting for their match or turn.
+  - Physics/sync validation (Basketball, Snooker).
+  - Puzzle scoring (Word Hunt, Anagram).
+- [ ] **Add Game Engines**: WebSocket consumer + move validator for each new game.
+- [ ] **Live Activity Feed**: `GET /api/matches/live/` or WebSocket channel returning currently active matches for a spectator/lobby view.
 
 ### Frontend Tasks
-- [ ] **Game Prototypes**: Implement localized React boards/practice controllers for Basketball, Snooker, Reversi, etc.
-- [ ] **Visual Customization**: Style interactive assets and turn indicators for added games.
+- [ ] **Game Prototypes**: React boards/controllers for Basketball, Snooker, Reversi, etc.
+- [ ] **Visual Customization**: Styled assets and turn indicators per game.
 
 ---
 
 ## 🧪 7. Testing & Quality Assurance
-The codebase lacks robust test coverage.
 
 ### Backend Tasks
-- [ ] **REST API Tests**: Create tests for registration, profile, wallet balance, and tournament registration.
-- [ ] **WebSockets & Channels Tests**: Write test cases for game moves, turn-timeouts, victory declarations, and payouts.
+- [ ] **REST API Tests**: Coverage for register, profile, wallet balance, staking, tournament join.
+- [ ] **WebSocket & Channels Tests**: Game moves, turn timeouts, victory declarations, payout triggers.
+- [ ] **Challenge Lifecycle Tests**: Pending → accepted → matched flow, expiry, refund.
 
 ### Frontend Tasks
-- [ ] **Zustand Store Tests**: Assert state changes for auth, wallet, and game state.
-- [ ] **Component Tests**: Add render and action tests for matchmaking queues and game board turns.
+- [ ] **Zustand Store Tests**: Auth, wallet, ranking, and game state transitions.
+- [ ] **Component Tests**: Matchmaking queue, game board turns, challenge overlay.
 
 ---
 
 ## ⚖️ 8. Production Hardening
-Prepare the platform to scale out of the local development environment.
 
 ### Backend Tasks
-- [ ] **Matchmaking Engine**: Replace local memory queue logic with Redis for multi-server synchronization.
-- [ ] **Database Migration**: Switch from SQLite to PostgreSQL.
-- [ ] **Production Settings**: Hardened CORS headers, SSL configurations, and environment secrets management.
+- [ ] **Matchmaking Queue**: Replace in-memory queue with **Redis** for multi-server support.
+- [ ] **Database**: Migrate from SQLite → **PostgreSQL**.
+- [ ] **Security**: Hardened CORS headers, HTTPS-only cookies, environment secrets via `.env` / secret manager.
+- [ ] **Rate Limiting**: Add throttling on matchmaking, challenge, and search endpoints.
+- [ ] **Logging & Monitoring**: Structured logging (JSON), Sentry integration for error tracking.
