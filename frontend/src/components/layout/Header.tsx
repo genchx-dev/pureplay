@@ -4,12 +4,13 @@ import { Wallet } from 'lucide-react';
 interface HeaderProps {
   isAuthenticated: boolean;
   balance: number;
+  onLogoClick?: () => void;
 }
 
-export const Header = ({ isAuthenticated, balance }: HeaderProps) => {
+export const Header = ({ isAuthenticated, balance, onLogoClick }: HeaderProps) => {
   return (
     <header className="px-6 py-4 flex items-center justify-between bg-primary sticky top-0 z-40">
-      <Link to="/" className="flex items-center group shrink-0">
+      <Link to="/" onClick={onLogoClick} className="flex items-center group shrink-0">
         <span className="text-xl font-shrikhand text-black uppercase tracking-tighter">
           PUREPLAY
         </span>

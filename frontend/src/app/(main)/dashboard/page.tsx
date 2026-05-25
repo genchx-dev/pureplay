@@ -150,7 +150,7 @@ export const HomePage = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen relative bg-black">
-        <Header isAuthenticated={isAuthenticated} balance={balance} />
+        <Header isAuthenticated={isAuthenticated} balance={balance} onLogoClick={() => setActiveTab('home')} />
 
         {/* Dynamic Content */}
         <main className="flex-1 overflow-y-auto w-full scrollbar-hide pb-24 md:pb-6">
