@@ -75,12 +75,12 @@ export const GamePage = () => {
   const {
     player1Username,
     player2Username,
+    currentRound,
+    roundScores,
+    roundWinner,
+    setRoundWinner,
+    setBoard,
   } = useGameStore();
-
-  // For series: map wins to local 'You' and 'Opponent'
-  const myWins = series ? (playerSymbol === 'X' ? series.player1_wins : series.player2_wins) : 0;
-  const opponentWins = series ? (playerSymbol === 'X' ? series.player2_wins : series.player1_wins) : 0;
-  const isSeriesComplete = series?.is_complete || false;
 
   // Demo round tracking state
   const [demoRound, setDemoRound] = useState(1);
@@ -88,6 +88,17 @@ export const GamePage = () => {
   const [demoRoundWinner, setDemoRoundWinner] = useState<string | null>(null);
   const [demoIsGameOver, setDemoIsGameOver] = useState(false);
   const [demoFinalWinner, setDemoFinalWinner] = useState<string | null>(null);
+
+  // For series: map wins to local 'You' and 'Opponent'
+  const myWins = isDemoMode
+    ? (playerSymbol === 'X' ? demoScores.X : demoScores.O)
+    : (playerSymbol === 'X' ? (roundScores?.X || 0) : (roundScores?.O || 0));
+  const opponentWins = isDemoMode
+    ? (playerSymbol === 'X' ? demoScores.O : demoScores.X)
+    : (playerSymbol === 'X' ? (roundScores?.O || 0) : (roundScores?.X || 0));
+  const isSeriesComplete = isDemoMode
+    ? demoIsGameOver
+    : ((roundScores?.X || 0) >= 2 || (roundScores?.O || 0) >= 2);
 
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
   const winningLine = getWinningLine(board);
@@ -140,6 +151,17 @@ export const GamePage = () => {
     }
   }, [winner, isDemoMode]);
 
+  // Live mode best-of-three round transition effect
+  useEffect(() => {
+    if (!isDemoMode && roundWinner) {
+      const timer = setTimeout(() => {
+        setRoundWinner(null);
+        setBoard(Array(9).fill(null));
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [roundWinner, isDemoMode, setRoundWinner, setBoard]);
+
   const handleDemoReset = () => {
     reconnect();
     setDemoRound(1);
@@ -173,16 +195,16 @@ export const GamePage = () => {
     status === 'playing'
       ? 'LIVE'
       : (isDemoMode ? demoIsGameOver : (status === 'finished' || status === 'draw'))
-      ? (isDemoMode ? 'GAME OVER' : (series && !isSeriesComplete ? 'ROUND OVER' : 'GAME OVER'))
+      ? 'GAME OVER'
       : 'CONNECTING...';
 
   // Compute values dynamically
   const authUser = user?.username || 'YOU';
   const player1Name = isDemoMode ? authUser : (player1Username || 'Player 1');
   const player2Name = isDemoMode ? 'ShadowMaster' : (player2Username || 'Player 2');
-  const currentRoundNum = isDemoMode ? demoRound : (series ? (series.player1_wins + series.player2_wins + 1) : 1);
-  const currentRoundScores = isDemoMode ? demoScores : { X: series ? series.player1_wins : 0, O: series ? series.player2_wins : 0 };
-  const activeRoundWinner = isDemoMode ? demoRoundWinner : null;
+  const currentRoundNum = isDemoMode ? demoRound : currentRound;
+  const currentRoundScores = isDemoMode ? demoScores : roundScores;
+  const activeRoundWinner = isDemoMode ? demoRoundWinner : roundWinner;
 
   const finalWinnerSymbol = isDemoMode ? demoFinalWinner : winner;
   const didFinalWin = finalWinnerSymbol && finalWinnerSymbol !== 'draw' && playerSymbol === finalWinnerSymbol;
@@ -197,10 +219,10 @@ export const GamePage = () => {
         ? 'Great game! You won the practice series.'
         : 'Good try! Opponent won the practice series.')
     : (winner === 'draw'
-        ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
+        ? 'Both players held the board. Stakes are returned.'
         : didWin
-        ? (series && !isSeriesComplete ? 'You won this round! Waiting for next match...' : 'Clean finish. Your wallet will update with the match payout.')
-        : (series && !isSeriesComplete ? `${winner || 'Opponent'} wins this round. Preparing next match...` : `${winner || 'Opponent'} wins this round.`));
+        ? 'Clean finish. Your wallet will update with the match payout.'
+        : `${winner || 'Opponent'} wins the match.`);
 
   const getCellClasses = (idx: number, cell: string | null) => {
     const isWinner = winningLine?.includes(idx);
@@ -255,7 +277,7 @@ export const GamePage = () => {
         </header>
 
         {/* Series Progress */}
-        {series && (
+        {(status === 'playing' || status === 'finished' || status === 'draw') && (
           <div className="mb-6 flex items-center justify-center gap-4">
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">You</span>

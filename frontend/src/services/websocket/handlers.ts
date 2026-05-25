@@ -31,7 +31,21 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.series) gameStore.setSeries(data.series);
         if (data.player1Username) gameStore.setPlayer1Username(data.player1Username);
         if (data.player2Username) gameStore.setPlayer2Username(data.player2Username);
+        if (data.currentRound) gameStore.setCurrentRound(data.currentRound);
+        if (data.roundScores) gameStore.setRoundScores(data.roundScores);
+        gameStore.setRoundWinner(null);
         gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        break;
+      case WSEvent.ROUND_OVER:
+        console.log('Round Over:', data.roundWinner);
+        if (data.roundWinner) gameStore.setRoundWinner(data.roundWinner);
+        if (data.currentRound) gameStore.setCurrentRound(data.currentRound);
+        if (data.roundScores) gameStore.setRoundScores(data.roundScores);
+        if (data.board) gameStore.setBoard(data.board);
+        if (data.currentPlayer) gameStore.setCurrentPlayer(data.currentPlayer);
+        if (data.series) gameStore.setSeries(data.series);
+        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        gameStore.setError(null);
         break;
       case WSEvent.TURN_SKIP:
         if (data.board) gameStore.setBoard(data.board);
@@ -62,6 +76,7 @@ export const handleWSMessage = (event: MessageEvent) => {
         break;
       default:
         console.warn('Unhandled WS event type:', data.type);
+        break;
     }
   } catch (err) {
     console.error('Failed to parse WS message', err);

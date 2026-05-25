@@ -66,6 +66,46 @@ def create_match(player1_id, game_type='tictactoe', stake=0):
     return match
 
 
+def create_series(player1_id, player2_id, game_type='tictactoe', stake=0):
+    from .models import Series, Match
+    User = get_user_model()
+    player1 = User.objects.get(id=player1_id)
+    player2 = User.objects.get(id=player2_id)
+    stake_decimal = Decimal(str(stake))
+
+    engine = get_engine(game_type)
+    
+    with transaction.atomic():
+        series = Series.objects.create(
+            player1=player1,
+            player2=player2,
+            stake=stake_decimal,
+            game_type=game_type,
+            status='active'
+        )
+
+        if stake_decimal > 0:
+            WalletService.lock_funds(player2, stake_decimal)
+
+        initial_state = engine.get_initial_state(str(player1_id), str(player2_id), stake=stake_decimal)
+        initial_state['currentRound'] = 1
+        initial_state['roundScores'] = {'X': 0, 'O': 0}
+        initial_state['roundWinner'] = None
+        initial_state['turnEndsAt'] = iso(turn_deadline())
+
+        match = Match.objects.create(
+            player1=player1,
+            player2=player2,
+            status='active',
+            game_state=initial_state,
+            current_turn=player1,
+            series=series,
+            game_number=1
+        )
+
+    return series, match
+
+
 # =========================
 # JOIN MATCH (improved – uses engine to find second symbol)
 # =========================

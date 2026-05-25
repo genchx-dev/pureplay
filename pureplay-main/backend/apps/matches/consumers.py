@@ -201,6 +201,8 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'turnEndsAt': state.get('turnEndsAt'),
             'player1Username': match.player1.username,
             'player2Username': match.player2.username if match.player2 else None,
+            'currentRound': state.get('currentRound', 1),
+            'roundScores': state.get('roundScores', {'X': 0, 'O': 0}),
         })
 
     # =========================

@@ -29,13 +29,16 @@ export interface MatchMove {
 }
 
 export interface MatchEvent {
-  type: 'MATCH_START' | 'MOVE_MADE' | 'TURN_SKIP' | 'GAME_OVER' | 'ERROR' | 'NEXT_MATCH';
+  type: 'MATCH_START' | 'MOVE_MADE' | 'TURN_SKIP' | 'GAME_OVER' | 'ERROR' | 'NEXT_MATCH' | 'ROUND_OVER';
   matchId?: string;
   board?: BoardState;
   currentPlayer?: PlayerSymbol;
   nextPlayer?: PlayerSymbol;
   playerSymbol?: PlayerSymbol;
   winner?: PlayerSymbol | 'draw';
+  roundWinner?: PlayerSymbol | 'draw';
+  currentRound?: number;
+  roundScores?: Record<PlayerSymbol, number>;
   turnEndsAt?: string;
   message?: string;
   series?: SeriesInfo | null;
