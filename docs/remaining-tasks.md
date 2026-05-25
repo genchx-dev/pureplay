@@ -97,11 +97,20 @@ Leaderboards and match history are currently static.
   - [ ] Implement MMR/Elo algorithm updates for fair matchmaking.
 - [ ] **Leaderboard REST API**: `GET /api/rankings/leaderboard/` returning users ranked by XP, filtered by Tier.
 - [ ] **Match History REST API**: `GET /api/matches/history/` returning historical match results.
+- [ ] **Player Search API**: `GET /api/players/search/?q={username}` — search players by username.
+  - [ ] Case-insensitive partial match on `username` field (e.g. `?q=king` returns `QuantumKing`).
+  - [ ] Return public fields only: `username`, `rank`, `tier`, `xp`, `wins`, `losses`, `draws`, `earnings`.
+  - [ ] Exclude the requesting user from own search results.
+  - [ ] Limit results to max 20 per query.
+- [ ] **Public Player Profile API**: `GET /api/players/{username}/` — return a single player's public profile (same fields as search). Used when clicking a player row in the leaderboard or challenge list.
 
 ### Frontend Tasks
 - [x] **Leaderboard Screen**: Fetch and render the live leaderboard on the **Leaderboard** tab (fully integrated with local mock fallback).
 - [x] **Profile Stats**: Display the user's Tier (using new 10-tier visuals), total XP, progress bar, and win/loss records on the **Me** screen.
 - [x] **Match History Feed**: Render the match history log showing opponent username, game played, stake, outcome, and date (fully integrated with local storage tracking).
+- [x] **Player Profile Modal**: Tapping any player row in the Leaderboard opens a bottom-sheet/modal showing their full tier badge, Win/Loss/Draw stats, win rate bar, total earnings, and a **Challenge** CTA that navigates directly to the Challenge tab.
+- [ ] **Player Search UI**: Add a search bar on the Leaderboard and Challenge pages so users can find opponents by username. Wire to `GET /api/players/search/?q=` once the backend endpoint is live (local mock fallback until then).
+
 
 ---
 
