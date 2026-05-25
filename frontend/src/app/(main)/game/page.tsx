@@ -5,6 +5,14 @@ import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 import { comingSoonGames, ticTacToeGame } from '../../../data/games';
 import { useWalletStore } from '../../../store/wallet.store';
+import { useAuth } from '../../../hooks/useAuth';
+import { useRankingStore } from '../../../store/ranking.store';
+
+const OPPONENTS = ['QuantumKing', 'ShadowMaster', 'ProGamerX', 'NightOwl', 'CryptoChamp', 'BlitzKing', 'TacticsGod', 'Dominator99', 'FlashPoint', 'XcelPlayer'];
+const getRandomOpponent = (excludeUsername?: string) => {
+  const filtered = OPPONENTS.filter(name => name !== excludeUsername);
+  return filtered[Math.floor(Math.random() * filtered.length)];
+};
 
 const WINNING_COMBINATIONS = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
@@ -56,12 +64,27 @@ export const GamePage = () => {
     }
   };
 
+  const didWin = winner && winner !== 'draw' && playerSymbol === winner;
+
+  const { user, checkAuth } = useAuth();
+  const addMatchResult = useRankingStore((state) => state.addMatchResult);
+
   useEffect(() => {
     if (!isDemoMode && (status === 'finished' || status === 'draw')) {
       fetchBalance();
       fetchTransactions();
+      
+      if (user?.username) {
+        const result = winner === 'draw' ? 'DRAW' : didWin ? 'WIN' : 'LOSS';
+        const matchStake = payout ? ((payout.winnerAmount || 0) + (payout.platformFee || 0)) / 2 : 500;
+        const opponentName = getRandomOpponent(user.username);
+        
+        addMatchResult(user.username, 'Tic Tac Toe', opponentName, result, matchStake);
+      }
+      
+      checkAuth();
     }
-  }, [fetchBalance, fetchTransactions, isDemoMode, status]);
+  }, [fetchBalance, fetchTransactions, checkAuth, isDemoMode, status, user?.username, winner, didWin, payout, addMatchResult]);
 
   const statusLabel =
     status === 'playing'
@@ -69,8 +92,6 @@ export const GamePage = () => {
       : status === 'finished' || status === 'draw'
       ? 'GAME OVER'
       : 'CONNECTING...';
-
-  const didWin = winner && winner !== 'draw' && playerSymbol === winner;
 
   const resultTitle =
     winner === 'draw' ? 'Draw Match' : didWin ? 'You Won' : 'Match Complete';

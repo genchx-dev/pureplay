@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  User,
   Wallet,
-  Settings,
+  Settings as SettingsIcon,
   LogOut,
   ArrowDownLeft,
   ArrowUpRight,
@@ -13,24 +12,55 @@ import {
   TrendingUp,
   Swords,
   Minus,
+  Trees,
+  Coins,
+  Award,
+  Shield,
+  Star,
+  Crown,
+  Gem,
+  Zap,
+  Cpu,
+  Flame,
+  Terminal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
+import { useRankingStore } from '../../../store/ranking.store';
+import { getTierByXp, getNextTier } from '../../../utils/tier';
+
+const TIER_ICONS = {
+  Trees,
+  Coins,
+  Award,
+  Shield,
+  Star,
+  Crown,
+  Gem,
+  Zap,
+  Cpu,
+  Flame,
+};
 
 export const MePage = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { balance = 0, transactions } = useWallet(isAuthenticated);
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
+  const [showDevPanel, setShowDevPanel] = useState(false);
 
-  const gameHistory = [
-    { id: 1, game: 'Tic Tac Toe', opponent: 'ShadowMaster', result: 'WIN', earnings: 950, date: 'May 13, 2026', time: '03:25 PM' },
-    { id: 2, game: 'Tic Tac Toe', opponent: 'QuantumKing', result: 'LOSS', earnings: -500, date: 'May 13, 2026', time: '03:20 PM' },
-    { id: 3, game: 'Tic Tac Toe', opponent: 'ProGamerX', result: 'DRAW', earnings: 0, date: 'May 12, 2026', time: '11:10 AM' },
-  ];
+  const { matchHistory, fetchMatchHistory, addMatchResult, addSimulationXp, resetStats } = useRankingStore();
 
-  const wins = gameHistory.filter((game) => game.result === 'WIN').length;
-  const losses = gameHistory.filter((game) => game.result === 'LOSS').length;
-  const draws = gameHistory.filter((game) => game.result === 'DRAW').length;
+  useEffect(() => {
+    if (user?.username) {
+      fetchMatchHistory(user.username);
+    }
+  }, [user?.username, fetchMatchHistory]);
+
+  const wins = matchHistory.filter((game) => game.result === 'WIN').length;
+  const losses = matchHistory.filter((game) => game.result === 'LOSS').length;
+  const draws = matchHistory.filter((game) => game.result === 'DRAW').length;
   const total = wins + losses + draws;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
@@ -48,22 +78,41 @@ export const MePage = () => {
     return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // XP & Tier progression variables
+  const xp = user?.xp || 5000;
+  const currentTier = getTierByXp(xp);
+  const nextTier = getNextTier(currentTier.name);
+  
+  let progressPercent = 100;
+  let xpRemaining = 0;
+  
+  if (nextTier) {
+    const range = nextTier.minXp - currentTier.minXp;
+    const progress = xp - currentTier.minXp;
+    progressPercent = Math.max(0, Math.min(100, (progress / range) * 100));
+    xpRemaining = nextTier.minXp - xp;
+  }
+
+  const CurrentTierIcon = TIER_ICONS[currentTier.iconName as keyof typeof TIER_ICONS] || Award;
+
   return (
     <div className="px-4 pb-24 pt-6 space-y-6 max-w-2xl mx-auto">
-      <div className="bg-gradient-to-br from-zinc-900 to-black rounded-3xl p-6 border border-primary/20 shadow-xl shadow-primary/5 relative overflow-hidden">
+      {/* Profile Card */}
+      <div className="bg-gradient-to-br from-zinc-900 to-black rounded-3xl p-6 border border-zinc-800 shadow-xl relative overflow-hidden">
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
 
         <div className="relative flex items-start gap-4 mb-6">
-          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center border-4 border-primary/30 text-black shrink-0">
-            <User size={36} />
+          <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center border-4 border-zinc-700 text-primary shrink-0 overflow-hidden relative">
+            <CurrentTierIcon size={36} className={`${currentTier.color}`} />
           </div>
-          <div className="flex-1">
-            <h2 className="font-black text-xl mb-1 text-white">{user?.username || 'Gamer'}</h2>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-black text-xl mb-1 text-white truncate">{user?.username || 'Gamer'}</h2>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="bg-primary text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                {user?.tier || 'Bronze'} Tier
+              <span className={`inline-flex items-center gap-1 ${currentTier.bg} ${currentTier.color} text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter border ${currentTier.border}`}>
+                <CurrentTierIcon size={10} />
+                {currentTier.name} Tier
               </span>
-              <span className="text-zinc-500 text-xs font-medium">#{user?.rank || 1000} RANK</span>
+              <span className="text-zinc-500 text-xs font-bold uppercase">#{user?.rank || 10} Rank</span>
               {user?.phone && (
                 <span className="text-zinc-400 text-xs font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></span>
@@ -73,10 +122,42 @@ export const MePage = () => {
             </div>
           </div>
           <button className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
-            <Settings className="text-zinc-400" size={20} />
+            <SettingsIcon className="text-zinc-400" size={20} />
           </button>
         </div>
 
+        {/* Dynamic XP Progress Bar */}
+        <div className="bg-black/40 rounded-2xl p-4 border border-zinc-800 mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Progression</span>
+            <span className={`text-xs font-mono font-black ${currentTier.color}`}>{xp.toLocaleString()} XP</span>
+          </div>
+          
+          <div className="h-2.5 bg-zinc-950 rounded-full border border-zinc-900 overflow-hidden relative p-[1px]">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${
+                currentTier.name === 'Ruby' 
+                  ? 'from-red-600 to-rose-500' 
+                  : 'from-primary/80 to-primary'
+              } transition-all duration-500`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-[10px] text-zinc-500 font-bold uppercase">
+              {currentTier.name} Tier
+            </span>
+            <span className="text-[10px] text-zinc-400 font-bold font-mono">
+              {nextTier 
+                ? `${xpRemaining.toLocaleString()} XP TO LEVEL UP` 
+                : 'MAX TIER REACHED 👑'
+              }
+            </span>
+          </div>
+        </div>
+
+        {/* Wallet Segment */}
         <div className="bg-black/50 rounded-2xl p-5 border border-zinc-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -105,6 +186,7 @@ export const MePage = () => {
         </div>
       </div>
 
+      {/* Stats Section */}
       <div>
         <div className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500 mb-3">Performance</div>
         <div className="grid grid-cols-4 gap-2">
@@ -131,6 +213,7 @@ export const MePage = () => {
         </div>
       </div>
 
+      {/* Tabs list (Transactions vs Game history) */}
       <div className="space-y-4">
         <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-2xl border border-zinc-800">
           <button
@@ -194,13 +277,18 @@ export const MePage = () => {
             </div>
           ) : (
             <div className="divide-y divide-zinc-800/50">
-              {gameHistory.map((game) => (
+              {matchHistory.length === 0 && (
+                <div className="p-8 text-center text-sm font-medium text-zinc-500">
+                  No games played yet.
+                </div>
+              )}
+              {matchHistory.map((game) => (
                 <div key={game.id} className="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         game.result === 'WIN' ? 'bg-primary/10 text-primary' :
-                        game.result === 'LOSS' ? 'bg-zinc-800 text-zinc-500' : 'bg-blue-500/10 text-blue-400'
+                        game.result === 'LOSS' ? 'bg-zinc-850 text-zinc-600' : 'bg-sky-500/10 text-sky-400'
                       }`}
                     >
                       <Trophy size={18} />
@@ -210,7 +298,7 @@ export const MePage = () => {
                         vs {game.opponent}
                       </div>
                       <div className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 mt-0.5">
-                        <Clock size={10} /> {game.date} at {game.time}
+                        <Clock size={10} /> {game.date} {game.time ? `at ${game.time}` : ''}
                       </div>
                     </div>
                   </div>
@@ -234,6 +322,83 @@ export const MePage = () => {
         </div>
       </div>
 
+      {/* Developer Simulation Panel */}
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 overflow-hidden">
+        <button
+          onClick={() => setShowDevPanel(!showDevPanel)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-zinc-900/40 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-200 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Terminal size={14} className="text-primary" />
+            <span>Developer Sandbox Panel</span>
+          </div>
+          {showDevPanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {showDevPanel && user?.username && (
+          <div className="p-4 space-y-4 border-t border-zinc-900 bg-zinc-950/90">
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+              Simulate match outcomes and add XP directly to test the dynamic 10-tier ranking boundaries.
+            </p>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => addSimulationXp(user.username, 100)}
+                className="bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                +100 XP
+              </button>
+              <button
+                onClick={() => addSimulationXp(user.username, 1000)}
+                className="bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                +1,000 XP
+              </button>
+              <button
+                onClick={() => addSimulationXp(user.username, 10000)}
+                className="bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                +10,000 XP
+              </button>
+              <button
+                onClick={() => addSimulationXp(user.username, 100000)}
+                className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                +100,000 XP
+              </button>
+              <button
+                onClick={() => addSimulationXp(user.username, -500)}
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                -500 XP
+              </button>
+              <button
+                onClick={() => resetStats(user.username)}
+                className="bg-zinc-900 hover:bg-red-950 text-red-500 border border-zinc-800 hover:border-red-900 text-[10px] font-bold py-2 px-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                Reset Stats
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-900">
+              <button
+                onClick={() => addMatchResult(user.username, 'Tic Tac Toe', 'ShadowMaster', 'WIN', 500)}
+                className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 text-[10px] font-bold py-2.5 rounded-lg active:scale-95 transition-all"
+              >
+                Simulate WIN (+50 XP)
+              </button>
+              <button
+                onClick={() => addMatchResult(user.username, 'Tic Tac Toe', 'QuantumKing', 'LOSS', 500)}
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-bold py-2.5 rounded-lg active:scale-95 transition-all"
+              >
+                Simulate LOSS (+15 XP)
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Logout button */}
       <button
         onClick={logout}
         className="w-full bg-zinc-900/50 text-red-500 font-bold py-4 rounded-2xl border border-zinc-800/50 flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all group"
@@ -244,3 +409,5 @@ export const MePage = () => {
     </div>
   );
 };
+
+export default MePage;

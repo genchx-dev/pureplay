@@ -1,7 +1,10 @@
-import { Clock, Trophy, Users, Zap, Lock, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, Trophy, Users, Zap, Lock, ChevronRight, Swords } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
+import { useWallet } from '../../../hooks/useWallet';
 import { useTournaments } from '../../../hooks/useTournaments';
 import type { Tournament } from '../../../types/tournament.types';
+import { TournamentBracketModal } from '../../../components/tournament/TournamentBracketModal';
 
 const statusLabel: Record<string, string> = {
   upcoming: 'Upcoming',
@@ -29,8 +32,11 @@ const tournamentDescription = (tournament: Tournament) =>
   tournament.description || `${tournament.gameType} competition with locked entry and backend-managed registration.`;
 
 export const TournamentPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { tournaments, loading, error, joinTournament } = useTournaments(isAuthenticated);
+  const { balance = 0 } = useWallet(isAuthenticated);
+
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
 
   const liveTournaments = tournaments.filter((tournament) =>
     ['registration_open', 'active', 'live'].includes(tournament.status),
@@ -77,12 +83,13 @@ export const TournamentPage = () => {
           {liveTournaments.map((tournament) => {
             const fillPct = Math.min(100, Math.round((tournament.participants / tournament.maxParticipants) * 100));
             const isFull = tournament.participants >= tournament.maxParticipants;
-            const canJoin = tournament.status === 'registration_open' && !isFull && !tournament.isJoined;
+            const hasBalance = balance >= tournament.entryFee;
+            const canJoin = tournament.status === 'registration_open' && !isFull && !tournament.isJoined && hasBalance;
 
             return (
               <div
                 key={tournament.id}
-                className="rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-zinc-900 to-black shadow-xl shadow-red-500/10 overflow-hidden"
+                className="rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-zinc-950 to-black shadow-xl shadow-red-500/10 overflow-hidden"
               >
                 <div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/20 px-5 py-2">
                   <div className="flex items-center gap-2 text-red-400 text-[10px] font-black uppercase tracking-widest">
@@ -124,13 +131,31 @@ export const TournamentPage = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => joinTournament(tournament.id)}
-                    disabled={loading || !canJoin}
-                    className="w-full rounded-2xl bg-primary px-5 py-3.5 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-                  >
-                    {tournament.isJoined ? 'Already Joined' : isFull ? 'Tournament Full' : tournament.status === 'registration_open' ? 'Enter Tournament' : 'Registration Closed'}
-                  </button>
+                  {!hasBalance && !tournament.isJoined && tournament.status === 'registration_open' && (
+                    <div className="mb-4 text-center text-xs font-bold text-red-400">
+                      Insufficient wallet balance (Requires {formatMoney(tournament.entryFee)})
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => joinTournament(tournament.id)}
+                      disabled={loading || !canJoin}
+                      className="w-full rounded-2xl bg-primary px-5 py-3.5 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                    >
+                      {tournament.isJoined ? 'Already Joined' : isFull ? 'Tournament Full' : tournament.status === 'registration_open' ? 'Enter Tournament' : 'Registration Closed'}
+                    </button>
+
+                    {(tournament.isJoined || tournament.status === 'active' || tournament.status === 'live' || tournament.status === 'completed') && (
+                      <button
+                        onClick={() => setSelectedTournament(tournament)}
+                        className="w-full rounded-2xl border-2 border-primary/30 px-5 py-3 text-sm font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-2"
+                      >
+                        <Swords size={14} />
+                        View Live Brackets
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -194,6 +219,15 @@ export const TournamentPage = () => {
           })}
         </div>
       </section>
+
+      {/* Bracket Tree Modal Overlay */}
+      {selectedTournament && (
+        <TournamentBracketModal
+          tournament={selectedTournament}
+          user={user}
+          onClose={() => setSelectedTournament(null)}
+        />
+      )}
     </div>
   );
 };

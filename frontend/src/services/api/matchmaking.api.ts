@@ -7,6 +7,7 @@ import type {
   JoinQueueRequest,
   JoinQueueResponse,
   OpenMatch,
+  IncomingChallenge,
 } from '../../types/matchmaking.types';
 
 export const matchmakingApi = {
@@ -31,4 +32,13 @@ export const matchmakingApi = {
 
   challengePlayer: (request: ChallengePlayerRequest) =>
     api.post<ChallengePlayerResponse>('/matchmaking/challenge/', request),
+
+  getIncomingChallenges: () =>
+    api.get<IncomingChallenge[]>('/matchmaking/challenges/incoming/'),
+
+  acceptChallenge: (challengeId: string) =>
+    api.post<{ status: 'matched'; matchId: string }>(`/matchmaking/challenges/${challengeId}/accept/`),
+
+  declineChallenge: (challengeId: string) =>
+    api.post<{ status: 'declined' }>(`/matchmaking/challenges/${challengeId}/decline/`),
 };

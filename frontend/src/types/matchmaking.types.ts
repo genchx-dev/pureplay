@@ -47,3 +47,15 @@ export interface ChallengePlayerResponse {
   challengeId?: string;
   matchId?: string;
 }
+
+export interface IncomingChallenge {
+  id: string;
+  gameType: 'tictactoe';
+  stake: number;
+  challenger: {
+    id: string;
+    username: string;
+    tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+    rank?: number;
+  };
+}

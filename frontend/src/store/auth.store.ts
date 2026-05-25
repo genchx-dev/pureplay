@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { authApi } from '../services/api/auth.api';
 import type { User } from '../types/auth.types';
+import { getTierByXp } from '../utils/tier';
 
 interface AuthState {
   user: User | null;
@@ -21,9 +22,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setAuth: (user, token, refreshToken) => {
     localStorage.setItem('token', token);
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-    set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true });
+    
+    // Load local XP and override tier
+    const storedXp = localStorage.getItem(`xp_${user.username}`);
+    const xp = storedXp ? Number(storedXp) : 5000; // start with 5000 (Bronze)
+    if (!storedXp) {
+      localStorage.setItem(`xp_${user.username}`, '5000');
+    }
+    const tierConfig = getTierByXp(xp);
+    
+    set({ 
+      user: {
+        ...user,
+        xp,
+        tier: tierConfig.name,
+      }, 
+      token, 
+      refreshToken: refreshToken || null, 
+      isAuthenticated: true 
+    });
   },
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    const storedXp = localStorage.getItem(`xp_${user.username}`);
+    const xp = storedXp ? Number(storedXp) : 5000;
+    const tierConfig = getTierByXp(xp);
+    set({
+      user: {
+        ...user,
+        xp,
+        tier: tierConfig.name
+      }
+    });
+  },
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -35,7 +65,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const { data } = await authApi.getProfile();
-      set({ user: data, isAuthenticated: true });
+      
+      const storedXp = localStorage.getItem(`xp_${data.username}`);
+      const xp = storedXp ? Number(storedXp) : 5000; // start with 5000 (Bronze)
+      if (!storedXp) {
+        localStorage.setItem(`xp_${data.username}`, '5000');
+      }
+      const tierConfig = getTierByXp(xp);
+      
+      set({ 
+        user: { 
+          ...data, 
+          xp, 
+          tier: tierConfig.name,
+          rank: data.rank || 10
+        }, 
+        isAuthenticated: true 
+      });
     } catch (error) {
       console.error('Auth check failed', error);
       get().logout();

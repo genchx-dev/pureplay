@@ -56,10 +56,10 @@ The current matchmaking creates a match immediately. It needs to transition to a
 - [ ] **Auto-Expiry Task**: Background scheduler (e.g., Celery or background threads) to automatically decline/expire invites after a timeout (e.g., 60 seconds).
 
 ### Frontend Tasks
-- [ ] **Challenge UI Flow**:
-  - [ ] Implement an "Incoming Challenge" overlay modal on the Dashboard showing the opponent's name, stake, and accept/decline buttons.
-  - [ ] Show a "Challenge Sent, Waiting..." state spinner to the sender with a cancel option.
-- [ ] **Queue Polling / Notifications**: Listen for incoming challenges on the global websocket or long-poll.
+- [x] **Challenge UI Flow**:
+  - [x] Implement an "Incoming Challenge" overlay modal on the Dashboard showing the opponent's name, stake, and accept/decline buttons.
+  - [x] Show a "Challenge Sent, Waiting..." state spinner to the sender with a cancel option.
+- [x] **Queue Polling / Notifications**: Listen for incoming challenges on the global websocket or long-poll.
 
 ---
 
@@ -99,9 +99,9 @@ Leaderboards and match history are currently static.
 - [ ] **Match History REST API**: `GET /api/matches/history/` returning historical match results.
 
 ### Frontend Tasks
-- [ ] **Leaderboard Screen**: Fetch and render the live leaderboard on the **Leaderboard** tab.
-- [ ] **Profile Stats**: Display the user's Tier (Bronze, Ruby, etc.), total XP, and win/loss records on the **Me** screen.
-- [ ] **Match History Feed**: Render the match history log showing opponent username, game played, stake, outcome, and date.
+- [x] **Leaderboard Screen**: Fetch and render the live leaderboard on the **Leaderboard** tab (fully integrated with local mock fallback).
+- [x] **Profile Stats**: Display the user's Tier (using new 10-tier visuals), total XP, progress bar, and win/loss records on the **Me** screen.
+- [x] **Match History Feed**: Render the match history log showing opponent username, game played, stake, outcome, and date (fully integrated with local storage tracking).
 
 ---
 

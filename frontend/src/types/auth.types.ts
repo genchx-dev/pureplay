@@ -2,10 +2,12 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  tier?: string;
   rank?: number;
   avatar?: string;
   phone?: string;
+  xp?: number;
+  mmr?: number;
 }
 
 export interface AuthResponse {

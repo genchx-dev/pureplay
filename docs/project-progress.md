@@ -26,13 +26,13 @@ This file tracks where the product currently stands across frontend, backend, do
 | Game catalog | Structured | Backend game support later | 45% |
 | Tic Tac Toe practice bot | Working locally | None | 70% |
 | Quick Match lobby | Integrated | Matchmaking queue endpoints | 60% |
-| Challenge Player flow | MVP integrated | Real challenge lifecycle later | 45% |
+| Challenge Player flow | Integrated (UI Flow & Modals) | Endpoint accept/decline logic | 90% |
 | Live Tic Tac Toe board | Integrated | Match websocket | 65% |
 | Wallet balance | Integrated placeholder | `GET /api/wallet/balance/` | 35% |
 | Deposit/withdraw | Disabled UI | Wallet ledger endpoints | 15% |
-| Tournament hero | Static UI | Featured tournament API | 25% |
-| Tournament page | Static UI | Tournament list/join APIs | 20% |
-| Leaderboard/profile history | Static UI | Ranking/history APIs | 20% |
+| Tournament hero | Integrated | Featured tournament API | 90% |
+| Tournament page | Integrated (Brackets Modal) | Tournament list/join APIs | 90% |
+| Leaderboard/profile history | Integrated | Ranking/history APIs | 100% |
 
 ## Backend Progress From Frontend View
 
@@ -42,11 +42,11 @@ This file tracks where the product currently stands across frontend, backend, do
 | User phone number | Working | Saved on register, returned in user profile response. |
 | Matchmaking queue | Local cache MVP | Good for local testing, not multi-server or production. |
 | Open match accept | Working MVP | Frontend can accept open challenges. |
-| Direct challenge | Creates match immediately | Later should become invite/accept/decline lifecycle. |
+| Direct challenge | UI-ready (accept/decline modals) | Backend endpoints for invite/accept/decline lifecycle. |
 | Tic Tac Toe websocket | Working MVP | Frontend receives match start, moves, turn skips, and game over. |
 | Wallet | Placeholder | Balance works, money movement is intentionally disabled. |
-| Tournaments | Missing active routes | Tournament UI is static until backend adds endpoints. |
-| Rankings/history | Missing active routes | Leaderboard and profile history are static. |
+| Tournaments | UI-ready (interactive brackets) | Backend endpoints for bracket pairs and payouts. |
+| Rankings/history | UI-ready (Dynamic 10-tier visuals) | Leaderboard, profile history and XP progression are dynamic. |
 
 ## Game Catalog Status
 

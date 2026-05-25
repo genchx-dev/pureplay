@@ -102,15 +102,18 @@ Current note: backend tests run successfully but there are currently `0` tests.
 - Quick Match lobby with open challenge listing and accept flow.
 - Challenge Player endpoint that immediately creates a match for MVP testing.
 - Tic Tac Toe websocket contract using `MATCH_START`, `MOVE_MADE`, `TURN_SKIP`, `GAME_OVER`, and `ERROR`.
+- Global Leaderboard podium and user standings table mapped to the new 10-tier ranking system (Wood to Ruby).
+- Dynamic player progression metrics including XP accumulation, level progress bar with countdown, and win-streak tracking.
+- Match history tracking that automatically rewards XP and calculates win streaks upon match completion.
 
 ## Known Limits
 
 - Wallet money movement is still placeholder-level in the active backend.
 - Stakes are shown in matchmaking but are not settled through a real wallet ledger.
-- Tournament join/payment and dynamic prize-pool updates are UI-level only until tournament backend endpoints are implemented.
+- Tournament join/payment and bracket tree visualization are UI-ready; backend endpoints are mocked locally until live tournament servers are up.
 - Challenge phone notifications are planned backend work (phone-number persistence is now supported).
 - Matchmaking uses local cache state, so it is suitable for local MVP testing, not production scale.
-- The challenge flow creates a match immediately; it does not yet implement real opponent acceptance.
+- The challenge flow is UI-ready for acceptance modals; backend invites are currently mocked locally until endpoints are implemented.
 - Production settings need hardening before deployment.
 
 ## Partner Docs
@@ -134,7 +137,8 @@ Current frontend status:
 
 - Tic Tac Toe is the only playable MVP game.
 - Coming-soon game assets are visible from the shared game catalog.
-- Tournament, leaderboard, wallet movement, ranking, and profile history screens still contain placeholder/static data until backend endpoints are implemented.
+- Leaderboard and player progression (XP/Tiers/Match History) are fully dynamic with local storage state persistence.
+- Tournament join/payment and bracket tree visualization are UI-ready with local mock fallbacks.
 - Wallet deposit and withdrawal actions remain disabled until the backend ledger is real.
 
 ## Documentation Maintenance

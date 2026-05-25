@@ -1,8 +1,17 @@
-import { Bell, Send, Swords } from 'lucide-react';
+import { Bell, Send, Swords, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useChallengeStore } from '../../../store/challenge.store';
 
 export const ChallengePage = () => {
   const navigate = useNavigate();
+  const simulateIncoming = useChallengeStore((state) => state.simulateIncoming);
+
+  const handleSimulate = () => {
+    const names = ['AlphaGamer', 'ShadowSniper', 'NaijaPro', 'VortexPlay', 'DeltaSquad'];
+    const randomName = names[Math.floor(Math.random() * names.length)];
+    const randomStake = [100, 500, 1000][Math.floor(Math.random() * 3)];
+    simulateIncoming(randomName, randomStake);
+  };
 
   return (
     <div className="px-6 pb-24 pt-6">
@@ -40,12 +49,22 @@ export const ChallengePage = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/matchmaking')}
-          className="mt-6 w-full rounded-xl bg-primary px-6 py-4 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] md:w-auto"
-        >
-          Open Tic Tac Toe Lobby
-        </button>
+        <div className="mt-6 flex flex-col gap-4 md:flex-row">
+          <button
+            onClick={() => navigate('/matchmaking')}
+            className="w-full rounded-xl bg-primary px-6 py-4 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] md:w-auto"
+          >
+            Open Tic Tac Toe Lobby
+          </button>
+          
+          <button
+            onClick={handleSimulate}
+            className="w-full rounded-xl border-2 border-primary/30 px-6 py-4 text-sm font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98] md:w-auto flex items-center justify-center gap-2"
+          >
+            <Play size={16} strokeWidth={3} />
+            Simulate Incoming Challenge
+          </button>
+        </div>
       </section>
     </div>
   );
