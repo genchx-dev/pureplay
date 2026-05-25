@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
-import { Wallet, ArrowDownLeft, ArrowUpRight, Plus, History, Gamepad2, Trophy, Clock, X } from 'lucide-react';
+import { Wallet, ArrowDownLeft, ArrowUpRight, Plus, History, Gamepad2, Trophy, Clock, X, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 
 type WalletAction = 'deposit' | 'withdraw' | null;
 
 export const WalletPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
   const { balance = 0, transactions, loading, error, deposit, withdraw } = useWallet(isAuthenticated);
   const walletActionsEnabled = true;
@@ -18,6 +21,13 @@ export const WalletPage = () => {
   const [accountName, setAccountName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const actionParam = searchParams.get('action');
+    if (actionParam === 'deposit' || actionParam === 'withdraw') {
+      setWalletAction(actionParam);
+    }
+  }, [searchParams]);
 
   const gameHistory = [
     { id: 1, game: 'Tic Tac Toe', opponent: 'ShadowMaster', result: 'WIN', earnings: 950, date: 'May 13, 2026', time: '03:25 PM' },
@@ -95,6 +105,15 @@ export const WalletPage = () => {
 
   return (
     <div className="px-6 pb-24 pt-6 space-y-6 max-w-4xl mx-auto">
+      <button
+        onClick={() => navigate('/')}
+        className="mb-2 flex w-fit items-center gap-2 rounded-full border border-border px-4 py-2 text-zinc-500 transition-colors hover:border-primary/40 hover:text-primary"
+        aria-label="Back to home"
+      >
+        <ArrowLeft size={18} />
+        <span className="text-xs font-black uppercase tracking-widest">Back</span>
+      </button>
+
       <div className="bg-gradient-to-br from-zinc-900 to-black rounded-3xl p-8 border border-primary/20 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 blur-3xl rounded-full" />
 
@@ -178,7 +197,7 @@ export const WalletPage = () => {
               </div>
             )}
             {transactions.map((tx) => {
-              const positive = tx.amount > 0 || tx.type === 'deposit' || tx.type === 'win' || tx.type === 'refund';
+              const positive = tx.type === 'deposit' || tx.type === 'win' || tx.type === 'refund';
               const label = tx.description || tx.type.replace('-', ' ');
               return (
                 <div key={tx.id} className="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">

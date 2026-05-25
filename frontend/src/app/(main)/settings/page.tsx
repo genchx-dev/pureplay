@@ -17,6 +17,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useRankingStore } from '../../../store/ranking.store';
@@ -24,6 +25,7 @@ import { getTierByXp, getNextTier } from '../../../utils/tier';
 import { TIER_BADGES } from '../dashboard/LeaderboardPage';
 
 export const MePage = () => {
+  const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const { transactions } = useWallet(isAuthenticated);
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
@@ -141,14 +143,14 @@ export const MePage = () => {
       {/* Wallet Actions */}
       <div className="flex gap-3">
         <button
-          onClick={() => alert("Deposit features are coming soon once the payment gateway ledger is integrated!")}
+          onClick={() => navigate('/wallet?action=deposit')}
           className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
           <Wallet size={16} />
           Deposit
         </button>
         <button
-          onClick={() => alert("Withdrawal features are coming soon once the banking provider integration is active!")}
+          onClick={() => navigate('/wallet?action=withdraw')}
           className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all active:scale-95"
         >
           Withdraw
@@ -201,7 +203,7 @@ export const MePage = () => {
                 </div>
               )}
               {transactions.map((tx) => {
-                const positive = tx.amount > 0 || tx.type === 'deposit' || tx.type === 'win' || tx.type === 'refund';
+                const positive = tx.type === 'deposit' || tx.type === 'win' || tx.type === 'refund';
                 const label = tx.description || tx.type.replace('-', ' ');
 
                 return (

@@ -93,7 +93,7 @@ Response:
 
 ## Wallet REST API
 
-Current active backend wallet endpoints are MVP placeholders.
+Wallet endpoints are fully implemented and integrated.
 
 ### Balance
 
@@ -103,8 +103,8 @@ Response:
 
 ```json
 {
-  "balance": 1000,
-  "currency": "PP"
+  "balance": "1000.00",
+  "updated_at": "2026-05-22T12:00:00Z"
 }
 ```
 
@@ -115,14 +115,81 @@ Response:
 Response:
 
 ```json
-[]
+[
+  {
+    "id": 1,
+    "amount": "500.00",
+    "transaction_type": "deposit",
+    "reference_id": "ref_123",
+    "description": "Deposit",
+    "status": "completed",
+    "created_at": "2026-05-22T12:00:00Z"
+  }
+]
 ```
 
-Planned but not implemented in the active backend:
+### Deposit
 
-- `POST /api/wallet/deposit/`
-- `POST /api/wallet/withdraw/`
-- `POST /api/wallet/lock-stake/`
+`POST /api/wallet/deposit/`
+
+Request:
+
+```json
+{
+  "amount": 500
+}
+```
+
+Response:
+
+```json
+{
+  "transaction": {
+    "id": 2,
+    "amount": "500.00",
+    "transaction_type": "deposit",
+    "reference_id": "ref_456",
+    "description": "Deposit",
+    "status": "completed",
+    "created_at": "2026-05-22T12:05:00Z"
+  },
+  "balance": 1500.0
+}
+```
+
+### Withdraw
+
+`POST /api/wallet/withdraw/`
+
+Request:
+
+```json
+{
+  "amount": 200,
+  "bankDetails": {
+    "bankName": "Access Bank",
+    "accountNumber": "0123456789",
+    "accountName": "John Doe"
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "transaction": {
+    "id": 3,
+    "amount": "-200.00",
+    "transaction_type": "withdrawal",
+    "reference_id": "ref_789",
+    "description": "Withdrawal to Access Bank",
+    "status": "completed",
+    "created_at": "2026-05-22T12:10:00Z"
+  },
+  "balance": 1300.0
+}
+```
 
 ## Tournament REST API
 

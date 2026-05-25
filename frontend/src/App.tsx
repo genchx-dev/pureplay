@@ -7,6 +7,7 @@ import HomePage from './app/(main)/dashboard/page';
 import { useAuthStore } from './store/auth.store';
 
 const GamePage = lazy(() => import('./app/(main)/game/page').then(module => ({ default: module.GamePage })));
+const WalletPage = lazy(() => import('./app/(main)/wallet/page').then(module => ({ default: module.WalletPage })));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -43,7 +44,13 @@ export function App() {
                 <MatchmakingPage />
             </ProtectedRoute>
         } />
-        <Route path="/wallet" element={<Navigate to="/" />} />
+        <Route path="/wallet" element={
+          <ProtectedRoute>
+            <Suspense fallback={<div className="text-primary p-8">Loading Wallet...</div>}>
+              <WalletPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path="/game" element={<Navigate to="/matchmaking" />} />
         <Route path="/game/:matchId" element={
           <ProtectedRoute>
