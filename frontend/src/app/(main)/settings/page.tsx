@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Wallet,
   Settings as SettingsIcon,
   LogOut,
   ArrowDownLeft,
@@ -16,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useRankingStore } from '../../../store/ranking.store';
@@ -135,33 +135,6 @@ export const MePage = () => {
           </div>
         </div>
 
-        {/* Wallet Segment */}
-        <div className="bg-black/50 rounded-2xl p-5 border border-zinc-800">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Wallet size={20} className="text-primary" />
-              <span className="text-zinc-400 text-sm font-medium">Available Balance</span>
-            </div>
-            <span className="text-primary font-black text-2xl font-mono">NGN {balance.toLocaleString()}</span>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => alert("Deposit features are coming soon once the payment gateway ledger is integrated!")}
-              className="flex-1 bg-primary text-black font-bold py-3 rounded-xl text-sm shadow-lg shadow-primary/10 transition-all active:scale-95"
-            >
-              Deposit
-            </button>
-            <button
-              onClick={() => alert("Withdrawal features are coming soon once the banking provider integration is active!")}
-              className="flex-1 border-2 border-primary text-primary font-bold py-3 rounded-xl text-sm transition-all active:scale-95"
-            >
-              Withdraw
-            </button>
-          </div>
-          <p className="mt-3 text-xs font-medium text-zinc-500">
-            Wallet ledger and match stakes are connected to the backend.
-          </p>
-        </div>
       </div>
 
       {/* Stats Section */}
@@ -176,18 +149,6 @@ export const MePage = () => {
             </div>
           ))}
         </div>
-
-        <div className="mt-3 bg-card rounded-2xl border border-border p-3">
-          <div className="flex justify-between text-[9px] font-bold text-zinc-500 uppercase mb-2">
-            <span>Win Rate Progress</span>
-            <span className="text-green-400">{winRate}%</span>
-          </div>
-          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-green-500 to-primary rounded-full transition-all duration-700"
-              style={{ width: `${winRate}%` }}
-            />
-          </div>
         </div>
       </div>
 
