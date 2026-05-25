@@ -6,7 +6,8 @@ export const WSEvent = {
   ERROR: 'ERROR',
   MAKE_MOVE: 'MAKE_MOVE',
   PLAYER_DISCONNECTED: 'PLAYER_DISCONNECTED',
-  PAYOUT_TRIGGERED: 'PAYOUT_TRIGGERED'
+  PAYOUT_TRIGGERED: 'PAYOUT_TRIGGERED',
+  ROUND_OVER: 'ROUND_OVER'
 } as const;
 
 export type WSEventType = typeof WSEvent[keyof typeof WSEvent];

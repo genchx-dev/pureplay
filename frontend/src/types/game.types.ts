@@ -11,6 +11,11 @@ export interface GameState {
   winner: PlayerSymbol | 'draw' | null;
   timeLeft: number;
   error: string | null;
+  player1Username?: string | null;
+  player2Username?: string | null;
+  currentRound: number;
+  roundScores: Record<string, number>;
+  roundWinner: string | 'draw' | null;
 }
 
 export interface MatchMove {
@@ -21,7 +26,7 @@ export interface MatchMove {
 }
 
 export interface MatchEvent {
-  type: 'MATCH_START' | 'MOVE_MADE' | 'TURN_SKIP' | 'GAME_OVER' | 'ERROR';
+  type: 'MATCH_START' | 'MOVE_MADE' | 'TURN_SKIP' | 'GAME_OVER' | 'ERROR' | 'ROUND_OVER';
   matchId?: string;
   board?: BoardState;
   currentPlayer?: PlayerSymbol;
@@ -30,6 +35,11 @@ export interface MatchEvent {
   winner?: PlayerSymbol | 'draw';
   turnEndsAt?: string;
   message?: string;
+  player1Username?: string;
+  player2Username?: string;
+  currentRound?: number;
+  roundScores?: Record<string, number>;
+  roundWinner?: string | 'draw';
   payout?: {
     winnerAmount?: number;
     platformFee?: number;
