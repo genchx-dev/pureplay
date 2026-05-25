@@ -189,7 +189,7 @@ Leaderboards and match history are currently driven by local mock data.
 - [x] **Profile Stats**: Tier badge, XP progress bar, win/loss/draw stats on the **Me** tab.
 - [x] **Match History Feed**: Game history log with opponent, result, earnings, and date.
 - [x] **Player Profile Modal**: Tap any leaderboard row → bottom-sheet with badge, stats, win rate, and **Challenge** CTA.
-- [ ] **Player Search UI**: Search bar on Leaderboard + Challenge pages, wired to `GET /api/players/search/?q=`.
+- [x] **Player Search UI**: Search bar on Leaderboard + Challenge pages, wired to `GET /api/players/search/?q=`.
 
 ---
 

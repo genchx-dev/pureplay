@@ -7,4 +7,7 @@ export const rankingApi = {
     
   getMatchHistory: () => 
     api.get<MatchHistoryRecord[]>('/matches/history/'),
+
+  searchPlayers: (q: string) =>
+    api.get<LeaderboardPlayer[]>(`/players/search/?q=${encodeURIComponent(q)}`),
 };

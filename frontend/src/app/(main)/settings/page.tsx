@@ -25,7 +25,7 @@ import { TIER_BADGES } from '../dashboard/LeaderboardPage';
 
 export const MePage = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const { balance = 0, transactions } = useWallet(isAuthenticated);
+  const { transactions } = useWallet(isAuthenticated);
   const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
   const [showDevPanel, setShowDevPanel] = useState(false);
 

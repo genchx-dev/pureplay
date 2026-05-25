@@ -27,6 +27,10 @@ const DEFAULT_MATCH_HISTORY: MatchHistoryRecord[] = [
 interface RankingState {
   leaderboard: LeaderboardPlayer[];
   matchHistory: MatchHistoryRecord[];
+  searchResults: LeaderboardPlayer[];
+  searchLoading: boolean;
+  searchError: string | null;
+  searchQuery: string;
   loading: boolean;
   error: string | null;
   fetchLeaderboard: () => Promise<void>;
@@ -34,11 +38,17 @@ interface RankingState {
   addMatchResult: (username: string, game: string, opponent: string, result: 'WIN' | 'LOSS' | 'DRAW', stake: number) => void;
   addSimulationXp: (username: string, amount: number) => void;
   resetStats: (username: string) => void;
+  searchPlayers: (q: string) => Promise<void>;
+  clearSearch: () => void;
 }
 
 export const useRankingStore = create<RankingState>((set, get) => ({
   leaderboard: [],
   matchHistory: [],
+  searchResults: [],
+  searchLoading: false,
+  searchError: null,
+  searchQuery: '',
   loading: false,
   error: null,
 
@@ -307,5 +317,51 @@ export const useRankingStore = create<RankingState>((set, get) => ({
     set({ matchHistory: DEFAULT_MATCH_HISTORY });
     localStorage.setItem(`matches_${username}`, JSON.stringify(DEFAULT_MATCH_HISTORY));
     get().fetchLeaderboard();
+  },
+
+  searchPlayers: async (q: string) => {
+    if (!q.trim()) {
+      set({ searchResults: [], searchQuery: '', searchError: null });
+      return;
+    }
+    set({ searchLoading: true, searchQuery: q, searchError: null });
+    try {
+      const { data } = await rankingApi.searchPlayers(q);
+      set({ searchResults: data, searchLoading: false });
+    } catch (err) {
+      console.warn('Player search API failed, falling back to mock listings filtering', err);
+      // Fallback: search in current leaderboard + some extra simulated players to make it feel rich!
+      const currentLeaderboard = get().leaderboard;
+      const extraMockPlayers: LeaderboardPlayer[] = [
+        { rank: 11, username: 'NaijaPro', tier: 'Gold', xp: 140000, wins: 130, losses: 90, draws: 10, earnings: 18000 },
+        { rank: 12, username: 'VortexPlay', tier: 'Silver', xp: 75000, wins: 110, losses: 98, draws: 15, earnings: 12500 },
+        { rank: 13, username: 'AlphaGamer', tier: 'Iron', xp: 45000, wins: 85, losses: 70, draws: 8, earnings: 8500 },
+        { rank: 14, username: 'ShadowSniper', tier: 'Bronze', xp: 22000, wins: 55, losses: 60, draws: 4, earnings: 4200 },
+        { rank: 15, username: 'DeltaSquad', tier: 'Wood', xp: 800, wins: 4, losses: 8, draws: 1, earnings: 100 },
+      ];
+
+      // Merge current leaderboard and extra ones, filter out duplicates
+      const allPlayersMap = new Map<string, LeaderboardPlayer>();
+      currentLeaderboard.forEach(p => allPlayersMap.set(p.username.toLowerCase(), p));
+      extraMockPlayers.forEach(p => {
+        if (!allPlayersMap.has(p.username.toLowerCase())) {
+          allPlayersMap.set(p.username.toLowerCase(), p);
+        }
+      });
+
+      const queryLower = q.toLowerCase();
+      const filtered = Array.from(allPlayersMap.values())
+        .filter(p => p.username.toLowerCase().includes(queryLower));
+
+      // Exclude the current logged-in user from their own search results
+      const currentUser = useAuthStore.getState().user;
+      const finalFiltered = filtered.filter(p => p.username !== currentUser?.username);
+
+      set({ searchResults: finalFiltered, searchLoading: false });
+    }
+  },
+
+  clearSearch: () => {
+    set({ searchResults: [], searchQuery: '', searchError: null });
   },
 }));

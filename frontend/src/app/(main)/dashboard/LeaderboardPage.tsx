@@ -3,7 +3,9 @@ import {
   Trophy, 
   TrendingUp, 
   Medal, 
-  Loader2
+  Loader2,
+  Search,
+  X
 } from 'lucide-react';
 import { useRankingStore } from '../../../store/ranking.store';
 import { useAuthStore } from '../../../store/auth.store';
@@ -91,13 +93,33 @@ const ROW_GRID = 'grid grid-cols-[2rem_1fr_3rem_5rem] sm:grid-cols-[2.5rem_1fr_4
 const HEADER_GRID = `${ROW_GRID} py-2 border-b border-zinc-800 bg-zinc-900/50`;
 
 export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) => {
-  const { leaderboard, loading, fetchLeaderboard } = useRankingStore();
+  const { 
+    leaderboard, 
+    loading, 
+    fetchLeaderboard,
+    searchResults,
+    searchLoading,
+    searchPlayers,
+    clearSearch
+  } = useRankingStore();
   const { user } = useAuthStore();
   const [selectedPlayer, setSelectedPlayer] = useState<LeaderboardPlayer | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      clearSearch();
+      return;
+    }
+    const timer = setTimeout(() => {
+      searchPlayers(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, searchPlayers, clearSearch]);
 
   const top3 = leaderboard.slice(0, 3);
   const top10 = leaderboard.slice(0, 10);
@@ -190,10 +212,34 @@ export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) =
       )}
 
       {/* Standings Table */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Medal size={14} className="text-primary" />
-          <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Global Standings</h2>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Medal size={14} className="text-primary" />
+            <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Global Standings</h2>
+          </div>
+          
+          {/* Search bar inside leaderboard */}
+          <div className="relative w-full sm:w-64 group">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-primary transition-colors">
+              <Search size={14} />
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search opponent username..."
+              className="w-full bg-zinc-900/60 border border-zinc-800 rounded-xl py-1.5 pl-9 pr-8 text-xs font-semibold placeholder:text-zinc-500 text-white focus:outline-none focus:border-primary/80 focus:ring-1 focus:ring-primary/45 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute inset-y-0 right-2.5 flex items-center text-zinc-500 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-xl">
@@ -209,60 +255,73 @@ export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) =
 
           {/* Rows */}
           <div className="divide-y divide-zinc-800/40">
-            {top10.map((player) => {
-              const rate = winRate(player.wins, player.losses, player.draws);
-              const isTop3 = player.rank <= 3;
-              const isMe = user?.username === player.username;
-              return (
-                <div
-                  key={player.username}
-                  onClick={() => setSelectedPlayer(player)}
-                  className={`${ROW_GRID} py-3 transition-colors hover:bg-white/[0.04] cursor-pointer active:bg-white/[0.06] ${isMe ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
-                >
-                  {/* Rank */}
-                  <div className={`text-sm font-black ${isTop3 ? 'text-primary' : 'text-zinc-600'}`}>
-                    {player.rank <= 3 ? ['🥇', '🥈', '🥉'][player.rank - 1] : player.rank}
-                  </div>
-
-                  {/* Player + tier */}
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-black text-white truncate">{player.username}</span>
-                      {isMe && <span className="bg-primary/20 text-primary text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shrink-0 border border-primary/20">YOU</span>}
+            {searchLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2 bg-zinc-950/20">
+                <Loader2 className="animate-spin text-primary" size={24} />
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Searching players...</span>
+              </div>
+            ) : query.trim() !== '' && searchResults.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-2 bg-zinc-950/20">
+                <span className="text-xl">🔍</span>
+                <span className="text-xs font-bold text-white uppercase tracking-wider">No players found</span>
+                <span className="text-[10px] font-semibold text-zinc-500">We couldn't find anyone matching "{query}"</span>
+              </div>
+            ) : (
+              (query.trim() !== '' ? searchResults : top10).map((player) => {
+                const rate = winRate(player.wins, player.losses, player.draws);
+                const isTop3 = player.rank <= 3;
+                const isMe = user?.username === player.username;
+                return (
+                  <div
+                    key={player.username}
+                    onClick={() => setSelectedPlayer(player)}
+                    className={`${ROW_GRID} py-3 transition-colors hover:bg-white/[0.04] cursor-pointer active:bg-white/[0.06] ${isMe ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                  >
+                    {/* Rank */}
+                    <div className={`text-sm font-black ${isTop3 ? 'text-primary' : 'text-zinc-600'}`}>
+                      {player.rank <= 3 ? ['🥇', '🥈', '🥉'][player.rank - 1] : player.rank}
                     </div>
-                    <div className="mt-1">
-                      <TierBadge tierName={player.tier} xp={player.xp} />
+
+                    {/* Player + tier */}
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-black text-white truncate">{player.username}</span>
+                        {isMe && <span className="bg-primary/20 text-primary text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shrink-0 border border-primary/20">YOU</span>}
+                      </div>
+                      <div className="mt-1">
+                        <TierBadge tierName={player.tier} xp={player.xp} />
+                      </div>
+                    </div>
+
+                    {/* W/L/D — desktop only */}
+                    <div className="hidden sm:block text-center text-[11px] font-mono">
+                      <span className="text-green-500 font-bold">{player.wins}</span>
+                      <span className="text-zinc-600 font-medium">/</span>
+                      <span className="text-red-500 font-bold">{player.losses}</span>
+                      <span className="text-zinc-600 font-medium">/</span>
+                      <span className="text-zinc-400 font-bold">{player.draws}</span>
+                    </div>
+
+                    {/* Win % bar — all screens */}
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-black text-zinc-400 font-mono">{rate}%</span>
+                      <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${rate}%` }} />
+                      </div>
+                    </div>
+
+                    {/* Earnings */}
+                    <div className="text-right text-xs font-black text-primary font-mono">
+                      <span className="hidden sm:inline">NGN </span>
+                      {player.earnings.toLocaleString()}
                     </div>
                   </div>
+                );
+              })
+            )}
 
-                  {/* W/L/D — desktop only */}
-                  <div className="hidden sm:block text-center text-[11px] font-mono">
-                    <span className="text-green-500 font-bold">{player.wins}</span>
-                    <span className="text-zinc-600 font-medium">/</span>
-                    <span className="text-red-500 font-bold">{player.losses}</span>
-                    <span className="text-zinc-600 font-medium">/</span>
-                    <span className="text-zinc-400 font-bold">{player.draws}</span>
-                  </div>
-
-                  {/* Win % bar — all screens */}
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-black text-zinc-400 font-mono">{rate}%</span>
-                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${rate}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Earnings */}
-                  <div className="text-right text-xs font-black text-primary font-mono">
-                    <span className="hidden sm:inline">NGN </span>
-                    {player.earnings.toLocaleString()}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* "My Rank" footer row if user is outside top 10 */}
-            {showUserRow && userEntry && (
+            {/* "My Rank" footer row if user is outside top 10 and search is empty */}
+            {!query.trim() && showUserRow && userEntry && (
               <div
                 onClick={() => setSelectedPlayer(userEntry)}
                 className={`${ROW_GRID} py-3 bg-zinc-950 border-t border-t-zinc-700 shadow-[inset_0_4px_12px_rgba(0,0,0,0.5)] border-l-2 border-l-primary cursor-pointer hover:bg-zinc-900/40 transition-colors`}
