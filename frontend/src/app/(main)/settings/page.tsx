@@ -149,7 +149,6 @@ export const MePage = () => {
             </div>
           ))}
         </div>
-        </div>
       </div>
 
       {/* Tabs list (Transactions vs Game history) */}
