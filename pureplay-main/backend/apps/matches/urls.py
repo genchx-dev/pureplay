@@ -9,6 +9,9 @@ urlpatterns = [
     # Join match
     path('<int:match_id>/join/', views.join_match_view, name='join_match'),
     
+    # Match history
+    path('history/', views.match_history_view, name='match_history'),
+    
     # Get match details
     path('<int:match_id>/', views.get_match_view, name='get_match'),
 ]
