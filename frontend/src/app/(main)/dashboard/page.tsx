@@ -10,9 +10,6 @@ import {
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useTournaments } from '../../../hooks/useTournaments';
-import { ChallengeOverlay } from '../../../components/matchmaking/ChallengeOverlay';
-import { useChallengeStore } from '../../../store/challenge.store';
-
 // Import modular components
 import { Header } from '../../../components/layout/Header';
 import { Sidebar } from '../../../components/layout/Sidebar';
@@ -102,28 +99,12 @@ export const HomePage = () => {
   const { isAuthenticated } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
 
-  const fetchIncoming = useChallengeStore((state) => state.fetchIncoming);
-
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab && ['home', 'challenge', 'tournament', 'leaderboard', 'me'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    // Poll for incoming invites every 4 seconds
-    const interval = setInterval(() => {
-      fetchIncoming();
-    }, 4000);
-
-    // Initial check
-    fetchIncoming();
-
-    return () => clearInterval(interval);
-  }, [fetchIncoming, isAuthenticated]);
 
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
@@ -146,7 +127,6 @@ export const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-black text-foreground flex flex-col md:flex-row relative overflow-hidden font-sans">
-      <ChallengeOverlay />
       <Sidebar 
         navItems={navItems}
         activeTab={activeTab}

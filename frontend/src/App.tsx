@@ -5,6 +5,8 @@ import { RegisterPage } from './app/(auth)/register/page';
 import { MatchmakingPage } from './app/(main)/matchmaking/page';
 import HomePage from './app/(main)/dashboard/page';
 import { useAuthStore } from './store/auth.store';
+import { ChallengeOverlay } from './components/matchmaking/ChallengeOverlay';
+import { useChallengeStore } from './store/challenge.store';
 
 const GamePage = lazy(() => import('./app/(main)/game/page').then(module => ({ default: module.GamePage })));
 const WalletPage = lazy(() => import('./app/(main)/wallet/page').then(module => ({ default: module.WalletPage })));
@@ -21,13 +23,28 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 export function App() {
   const checkAuth = useAuthStore(state => state.checkAuth);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const fetchIncoming = useChallengeStore(state => state.fetchIncoming);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      fetchIncoming();
+    }, 4000);
+
+    fetchIncoming();
+
+    return () => clearInterval(interval);
+  }, [fetchIncoming, isAuthenticated]);
+
   return (
     <Router>
+      <ChallengeOverlay />
       <Routes>
         <Route path="/login" element={
           <PublicRoute>

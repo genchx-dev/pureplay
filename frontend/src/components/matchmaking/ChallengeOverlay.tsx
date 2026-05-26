@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Swords, X, Loader2, ShieldAlert } from 'lucide-react';
 import { useChallengeStore } from '../../store/challenge.store';
 import { useWalletStore } from '../../store/wallet.store';
@@ -7,6 +7,11 @@ const formatMoney = (amount: number) => `NGN ${amount.toLocaleString()}`;
 
 export const ChallengeOverlay = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  
+  if (pathname.startsWith('/game')) {
+    return null;
+  }
   const {
     incomingChallenges,
     sentChallenge,
