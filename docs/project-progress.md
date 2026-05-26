@@ -1,6 +1,6 @@
 # PurePlay Project Progress
 
-Last updated: 2026-05-22
+Last updated: 2026-05-26
 
 This file tracks where the product currently stands across frontend, backend, docs, and integration. Update it whenever a feature moves from placeholder to integrated behavior.
 
@@ -10,7 +10,7 @@ This file tracks where the product currently stands across frontend, backend, do
 | --- | --- | ---: | --- |
 | Local setup | Working | 90% | Frontend and backend install paths are documented. |
 | Frontend shell | Working | 70% | React/Vite app has dashboard, auth screens, lobby, and game route. |
-| Backend shell | Working | 55% | Django/DRF/Channels app runs with auth, matchmaking, wallet placeholders, and Tic Tac Toe websocket. |
+| Backend shell | Working | 70% | Django/DRF/Channels app runs with auth, matchmaking, wallet ledger, rankings/leaderboard, and Tic Tac Toe websocket. |
 | API contract | Working draft | 65% | Main frontend expectations are documented in `docs/api-contract.md`. |
 | Tests | Thin | 15% | Build/check pass, but backend currently has 0 tests and frontend has no app tests. |
 | Production readiness | Not ready | 20% | Local MVP only. Wallet, tournaments, persistence, and deployment hardening remain. |
@@ -27,7 +27,7 @@ This file tracks where the product currently stands across frontend, backend, do
 | Tic Tac Toe practice bot | Working locally | None | 70% |
 | Quick Match lobby | Integrated | Matchmaking queue endpoints | 60% |
 | Challenge Player flow | Integrated (UI Flow & Modals) | Endpoint accept/decline logic | 90% |
-| Live Tic Tac Toe board | Integrated | Match websocket | 65% |
+| Live Tic Tac Toe board | Integrated | Match websocket | 100% |
 | Wallet balance | Integrated | `GET /api/wallet/balance/` | 100% |
 | Deposit/withdraw | Integrated | Wallet ledger endpoints | 100% |
 | Tournament hero | Integrated | Featured tournament API | 90% |
@@ -43,10 +43,10 @@ This file tracks where the product currently stands across frontend, backend, do
 | Matchmaking queue | Local cache MVP | Good for local testing, not multi-server or production. |
 | Open match accept | Working MVP | Frontend can accept open challenges. |
 | Direct challenge | UI-ready (accept/decline modals) | Backend endpoints for invite/accept/decline lifecycle. |
-| Tic Tac Toe websocket | Working MVP | Frontend receives match start, moves, turn skips, and game over. |
+| Tic Tac Toe websocket | Working (Best of 3 & Reconnection Sync, Turn Latency Buffer) | Frontend receives match start, moves, turn skips, and game over. |
 | Wallet | Working MVP | Full balance retrieval, transaction logging, deposits, and withdrawals. |
 | Tournaments | UI-ready (interactive brackets) | Backend endpoints for bracket pairs and payouts. |
-| Rankings/history | UI-ready (Dynamic 10-tier visuals) | Leaderboard, profile history and XP progression are dynamic. |
+| Rankings/history | Working | Leaderboard, profile history and XP progression are dynamic. |
 
 ## Game Catalog Status
 

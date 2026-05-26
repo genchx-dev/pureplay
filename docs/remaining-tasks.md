@@ -12,10 +12,10 @@ This document tracks all outstanding work to bridge the current React frontend w
 |---|---|---|
 | 1 | Auth | Persist `phone_number` on register (Done) |
 | 2 | Rankings | XP & MMR fields + post-match calculation (Done) |
-| 3 | Rankings | `GET /api/rankings/leaderboard/` |
+| 3 | Rankings | `GET /api/rankings/leaderboard/` (Done) |
 | 4 | Rankings | `GET /api/players/search/?q=` |
 | 5 | Rankings | `GET /api/players/{username}/` |
-| 6 | Rankings | `GET /api/matches/history/` |
+| 6 | Rankings | `GET /api/matches/history/` (Done) |
 | 7 | Wallet | Real wallet schema + staking engine (Done) |
 | 8 | Challenges | Challenge lifecycle API + SMS notifications (API Done, SMS Pending) |
 | 9 | Tournaments | Tournament schema + bracket logic (Done) |
@@ -114,9 +114,9 @@ Ranking system calculations are implemented, but endpoints are still pending.
   - [x] Add `xp` and `mmr` to the User model/profile.
   - [x] Post-match XP awards: `+50 WIN`, `+25 DRAW`, `+15 LOSS` (+ streak bonuses).
   - [x] MMR/Elo update on every match result.
-- [ ] **Leaderboard REST API**: `GET /api/rankings/leaderboard/`
+- [x] **Leaderboard REST API**: `GET /api/rankings/leaderboard/`
   - Returns top 100 players ranked by XP descending.
-- [ ] **Match History REST API**: `GET /api/matches/history/`
+- [x] **Match History REST API**: `GET /api/matches/history/`
   - Returns authenticated user's last 50 match results, newest first.
 - [ ] **Player Search API**: `GET /api/players/search/?q={username}`
 - [ ] **Public Player Profile API**: `GET /api/players/{username}/`
@@ -182,6 +182,8 @@ To transition Tic Tac Toe from a single-round game to a premium "best of three" 
   - Introduce a delay/countdown timer before resetting the board visually to let the user enjoy/experience the win animation.
 - [x] **Display Real Usernames**:
   - Bind `player1_username` and `player2_username` from the websocket connection to the player cards on the game page instead of showing generic "Player 1" and "Player 2" or "YOU" / "OPPONENT".
+- [x] **Post-Match Result Headers**:
+  - Display the specific cash amount won (e.g. `Won NGN 950`) for the winner, and display `You Lose` for the loser instead of the generic `Match Complete`.
 
 ---
 
