@@ -83,6 +83,7 @@ Matchmaking support for invites is active. Queue, incoming challenges and accept
 - [x] **Incoming Challenge Overlay**: Modal on Dashboard showing opponent name, stake, Accept/Decline buttons.
 - [x] **Waiting Spinner**: "Challenge Sent — Waiting..." spinner with Cancel option for the challenger.
 - [x] **Queue Polling**: Frontend polls `GET /api/matchmaking/incoming-challenges/` every 4 seconds.
+- [ ] **Global Challenge Listener**: Move `<ChallengeOverlay />` from the Dashboard page into the global layout wrapper (e.g. `layout.tsx`) so players receive invitations from any page on the platform.
 
 ---
 
