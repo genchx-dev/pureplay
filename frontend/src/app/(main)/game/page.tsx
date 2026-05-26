@@ -209,8 +209,13 @@ export const GamePage = () => {
   const finalWinnerSymbol = isDemoMode ? demoFinalWinner : winner;
   const didFinalWin = finalWinnerSymbol && finalWinnerSymbol !== 'draw' && playerSymbol === finalWinnerSymbol;
 
+  const amountWon = payout?.winnerAmount || estWinPot;
   const resultTitle =
-    finalWinnerSymbol === 'draw' ? 'Draw Match' : didFinalWin ? 'You Won' : 'Match Complete';
+    finalWinnerSymbol === 'draw'
+      ? 'Draw Match'
+      : didFinalWin
+      ? (isDemoMode ? 'You Won' : `Won ${formatMoney(amountWon)}`)
+      : 'You Lose';
 
   const resultDescription = isDemoMode
     ? (finalWinnerSymbol === 'draw'
