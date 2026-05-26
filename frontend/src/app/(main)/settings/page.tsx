@@ -83,8 +83,8 @@ export const MePage = () => {
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/5 blur-3xl rounded-full pointer-events-none" />
 
         <div className="relative flex items-start gap-4 mb-6">
-          <div className="w-20 h-20 bg-zinc-950/80 rounded-full flex items-center justify-center border border-zinc-850 shrink-0 overflow-hidden relative p-1 shadow-lg shadow-black/30">
-            <img src={badgeUrl} alt={currentTier.name} className="w-16 h-16 object-contain" />
+          <div className="w-24 h-24 shrink-0 flex items-center justify-center relative">
+            <img src={badgeUrl} alt={currentTier.name} className="w-24 h-24 object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-black text-xl mb-1 text-white truncate">{user?.username || 'Gamer'}</h2>

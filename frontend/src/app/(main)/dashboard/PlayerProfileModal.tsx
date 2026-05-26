@@ -50,17 +50,13 @@ export const PlayerProfileModal = ({ player, isMe, onClose, onChallenge }: Playe
 
         {/* Avatar */}
         <div className="flex flex-col items-center mb-6">
-          <div
-            className={`w-28 h-28 rounded-full bg-zinc-900 border-2 ${tierConfig.border} flex items-center justify-center mb-4 shadow-lg`}
-          >
+          <div className="w-32 h-32 flex items-center justify-center mb-4 relative">
             <img
               src={badgeUrl}
               alt={tierConfig.name}
               loading="lazy"
               decoding="async"
-              width={72}
-              height={72}
-              className="w-18 h-18 object-contain"
+              className="w-32 h-32 object-contain"
             />
           </div>
 
