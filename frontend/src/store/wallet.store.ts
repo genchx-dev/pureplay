@@ -32,6 +32,7 @@ interface WalletState {
   fetchBalance: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
   deposit: (amount: number) => Promise<void>;
+  verifyDeposit: (reference: string) => Promise<void>;
   withdraw: (amount: number, bankDetails: BankDetails) => Promise<void>;
 }
 
@@ -87,7 +88,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
   
   deposit: async (amount) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     
     const currentUser = useAuthStore.getState().user;
     if (currentUser && isDemoUser(currentUser.username)) {
@@ -112,13 +113,35 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
 
     try {
-      const { data } = await walletApi.deposit(amount);
-      set({ balance: Number(data.balance), loading: false, error: null });
-      await useWalletStore.getState().fetchTransactions();
+      const { data } = await walletApi.depositInitialize(amount);
+      if (data.authorization_url) {
+        // Redirect to Paystack
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error('No authorization URL received');
+      }
     } catch (error) {
       console.error('Failed to deposit', error);
       set({ loading: false, error: 'Deposit failed' });
       throw error;
+    }
+  },
+
+  verifyDeposit: async (reference) => {
+    set({ loading: true, error: null });
+    try {
+      const { data } = await walletApi.verifyDeposit(reference);
+      if (data.status === 'success') {
+        await get().fetchBalance();
+        await get().fetchTransactions();
+      } else {
+        set({ error: `Payment status: ${data.status}` });
+      }
+    } catch (error) {
+      console.error('Failed to verify deposit', error);
+      set({ error: 'Could not verify payment' });
+    } finally {
+      set({ loading: false });
     }
   },
   

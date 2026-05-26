@@ -2,7 +2,7 @@ import { useWalletStore } from '../store/wallet.store';
 import { useEffect } from 'react';
 
 export const useWallet = (autoFetch = false) => {
-  const { balance, transactions, loading, error, fetchBalance, fetchTransactions, deposit, withdraw } = useWalletStore();
+  const { balance, transactions, loading, error, fetchBalance, fetchTransactions, deposit, verifyDeposit, withdraw } = useWalletStore();
 
   useEffect(() => {
     if (autoFetch) {
@@ -27,6 +27,7 @@ export const useWallet = (autoFetch = false) => {
     fetchBalance,
     fetchTransactions,
     deposit,
+    verifyDeposit,
     withdraw,
   };
 };

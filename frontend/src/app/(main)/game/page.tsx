@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
@@ -7,7 +7,6 @@ import { comingSoonGames, ticTacToeGame } from '../../../data/games';
 import { useWalletStore } from '../../../store/wallet.store';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRankingStore } from '../../../store/ranking.store';
-import { useGameStore } from '../../../store/game.store';
 
 const OPPONENTS = ['QuantumKing', 'ShadowMaster', 'ProGamerX', 'NightOwl', 'CryptoChamp', 'BlitzKing', 'TacticsGod', 'Dominator99', 'FlashPoint', 'XcelPlayer'];
 const getRandomOpponent = (excludeUsername?: string) => {
@@ -92,13 +91,19 @@ export const GamePage = () => {
   // For series: map wins to local 'You' and 'Opponent'
   const myWins = isDemoMode
     ? (playerSymbol === 'X' ? demoScores.X : demoScores.O)
-    : (playerSymbol === 'X' ? (roundScores?.X || 0) : (roundScores?.O || 0));
+    : series
+    ? (playerSymbol === 'X' ? series.player1_wins : series.player2_wins)
+    : 0;
+
   const opponentWins = isDemoMode
     ? (playerSymbol === 'X' ? demoScores.O : demoScores.X)
-    : (playerSymbol === 'X' ? (roundScores?.O || 0) : (roundScores?.X || 0));
+    : series
+    ? (playerSymbol === 'X' ? series.player2_wins : series.player1_wins)
+    : 0;
+
   const isSeriesComplete = isDemoMode
     ? demoIsGameOver
-    : ((roundScores?.X || 0) >= 2 || (roundScores?.O || 0) >= 2);
+    : series?.is_complete || false;
 
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
   const winningLine = getWinningLine(board);
@@ -113,7 +118,6 @@ export const GamePage = () => {
 
   const { user, checkAuth } = useAuth();
   const addMatchResult = useRankingStore((state) => state.addMatchResult);
-
 
   // Demo mode best-of-three engine simulation
   useEffect(() => {
@@ -170,7 +174,6 @@ export const GamePage = () => {
     setDemoIsGameOver(false);
     setDemoFinalWinner(null);
   };
-
   useEffect(() => {
     // If it's a series, only update ranking/balance when the WHOLE series is finished
     const shouldReport = isSeriesComplete || (!series && (status === 'finished' || status === 'draw'));
@@ -194,8 +197,10 @@ export const GamePage = () => {
   const statusLabel =
     status === 'playing'
       ? 'LIVE'
-      : (isDemoMode ? demoIsGameOver : (status === 'finished' || status === 'draw'))
-      ? 'GAME OVER'
+      : status === 'finished' || status === 'draw'
+      ? (isDemoMode
+          ? (demoIsGameOver ? 'GAME OVER' : 'ROUND OVER')
+          : (series && !isSeriesComplete ? 'ROUND OVER' : 'GAME OVER'))
       : 'CONNECTING...';
 
   // Compute values dynamically
@@ -206,28 +211,33 @@ export const GamePage = () => {
   const currentRoundScores = isDemoMode ? demoScores : roundScores;
   const activeRoundWinner = isDemoMode ? demoRoundWinner : roundWinner;
 
-  const finalWinnerSymbol = isDemoMode ? demoFinalWinner : winner;
-  const didFinalWin = finalWinnerSymbol && finalWinnerSymbol !== 'draw' && playerSymbol === finalWinnerSymbol;
-
   const amountWon = payout?.winnerAmount || estWinPot;
   const resultTitle =
-    finalWinnerSymbol === 'draw'
+    winner === 'draw'
       ? 'Draw Match'
-      : didFinalWin
-      ? (isDemoMode ? 'You Won' : `Won ${formatMoney(amountWon)}`)
-      : 'You Lose';
+      : didWin
+      ? (isDemoMode
+          ? (demoIsGameOver ? 'You Won' : 'Round Won')
+          : (series && !isSeriesComplete ? 'Round Won' : `Won ${formatMoney(amountWon)}`))
+      : (isDemoMode
+          ? (demoIsGameOver ? 'You Lose' : 'Round Lost')
+          : (series && !isSeriesComplete ? 'Round Lost' : 'You Lose'));
 
   const resultDescription = isDemoMode
-    ? (finalWinnerSymbol === 'draw'
-        ? 'Both players held the board.'
-        : didFinalWin
-        ? 'Great game! You won the practice series.'
-        : 'Good try! Opponent won the practice series.')
-    : (winner === 'draw'
-        ? 'Both players held the board. Stakes are returned.'
-        : didWin
-        ? 'Clean finish. Your wallet will update with the match payout.'
-        : `${winner || 'Opponent'} wins the match.`);
+    ? winner === 'draw'
+      ? 'Both players held the board. Moving to next round.'
+      : didWin
+      ? (demoIsGameOver ? 'Great game! You won the practice series.' : 'You won this round! Preparing next match...')
+      : (demoIsGameOver ? 'Good try! Opponent won the practice series.' : 'Opponent won this round. Preparing next match...')
+    : winner === 'draw'
+    ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
+    : didWin
+    ? (series && !isSeriesComplete
+        ? 'You won this round! Waiting for next match...'
+        : 'Clean finish. Your wallet will update with the match payout.')
+    : (series && !isSeriesComplete
+        ? `${winner || 'Opponent'} wins this round. Preparing next match...`
+        : `${winner || 'Opponent'} wins this round.`);
 
   const getCellClasses = (idx: number, cell: string | null) => {
     const isWinner = winningLine?.includes(idx);
@@ -336,83 +346,7 @@ export const GamePage = () => {
           </div>
         )}
 
-        {/* Round Over Transition Overlay */}
-        {activeRoundWinner && (
-          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 animate-fade-in">
-            <div className="text-center max-w-sm flex flex-col items-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 animate-bounce">
-                <Trophy className="text-primary" size={32} />
-              </div>
-              <h2 className="text-xl font-black uppercase tracking-widest text-primary mb-2">
-                Round {currentRoundNum} Over
-              </h2>
-              <p className="text-base font-bold text-zinc-200 mb-6">
-                {activeRoundWinner === 'draw'
-                  ? 'Round ended in a Draw!'
-                  : activeRoundWinner === playerSymbol
-                  ? '🎉 YOU WON THE ROUND!'
-                  : '❌ OPPONENT WON THE ROUND'}
-              </p>
-              
-              <div className="flex items-center gap-6 bg-zinc-900 border border-zinc-800 rounded-2xl py-3.5 px-6 mb-8">
-                <div className="text-center">
-                  <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest truncate max-w-[80px]">{player1Name}</div>
-                  <div className="text-xl font-black text-primary mt-1">{currentRoundScores.X}</div>
-                </div>
-                <div className="text-zinc-700 font-bold text-lg">:</div>
-                <div className="text-center">
-                  <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest truncate max-w-[80px]">{player2Name}</div>
-                  <div className="text-xl font-black text-zinc-100 mt-1">{currentRoundScores.O}</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
-                Preparing Next Round...
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Round Scoreboard */}
-        <div className="flex justify-between items-center mb-6 bg-zinc-950/60 border border-zinc-900 rounded-2xl py-3 px-4 shadow-md">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-black uppercase tracking-wider text-zinc-500">Round {currentRoundNum}</span>
-            <span className="text-xs text-zinc-700">|</span>
-            <span className="text-[9px] font-black uppercase tracking-wider text-primary">Best of 3</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-black text-zinc-500 mr-1">X</span>
-              {[1, 2].map((roundIndex) => (
-                <div
-                  key={roundIndex}
-                  className={`w-2 h-2 rounded-full border transition-all duration-300 ${
-                    currentRoundScores.X >= roundIndex
-                      ? 'bg-primary border-primary shadow-[0_0_8px_rgba(255,204,51,0.6)]'
-                      : 'border-zinc-800 bg-zinc-950'
-                  }`}
-                />
-              ))}
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-black text-zinc-500 mr-1">O</span>
-              {[1, 2].map((roundIndex) => (
-                <div
-                  key={roundIndex}
-                  className={`w-2 h-2 rounded-full border transition-all duration-300 ${
-                    currentRoundScores.O >= roundIndex
-                      ? 'bg-foreground border-foreground shadow-[0_0_8px_rgba(255,255,255,0.4)]'
-                      : 'border-zinc-800 bg-zinc-950'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {(isDemoMode ? demoIsGameOver : (status === 'finished' || status === 'draw')) && (
+        {(status === 'finished' || status === 'draw') && (
           <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/10 p-5 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-black">
               <Trophy size={26} />
@@ -456,7 +390,7 @@ export const GamePage = () => {
           <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center text-xs font-black uppercase tracking-widest text-primary">
             Demo Mode
             <button
-              onClick={handleDemoReset}
+              onClick={reconnect}
               className="mt-3 block w-full rounded-xl bg-primary px-4 py-2 text-xs font-black text-black transition-transform hover:scale-[1.01]"
             >
               Reset Board
@@ -474,10 +408,8 @@ export const GamePage = () => {
               <User className="text-primary" size={40} />
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">PLAYER 1 (X)</span>
-              <span className="text-sm font-bold truncate max-w-[120px]">
-                {player1Name} {playerSymbol === 'X' && <span className="text-[9px] text-primary font-black">(YOU)</span>}
-              </span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 1</span>
+              <span className="text-sm font-bold">YOU ({playerSymbol || '...'})</span>
             </div>
           </div>
 
@@ -499,10 +431,8 @@ export const GamePage = () => {
               <User className="text-zinc-600" size={40} />
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">PLAYER 2 (O)</span>
-              <span className="text-sm font-bold text-zinc-300 truncate max-w-[120px]">
-                {player2Name} {playerSymbol === 'O' && <span className="text-[9px] text-primary font-black">(YOU)</span>}
-              </span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 2</span>
+              <span className="text-sm font-bold text-zinc-500">OPPONENT</span>
             </div>
           </div>
         </div>
@@ -520,7 +450,7 @@ export const GamePage = () => {
             {board.map((cell, idx) => (
               <button
                 key={idx}
-                disabled={cell !== null || !isMyTurn || status !== 'playing' || !!activeRoundWinner}
+                disabled={cell !== null || !isMyTurn || status !== 'playing'}
                 onClick={() => handleMove(idx)}
                 className={getCellClasses(idx, cell)}
               >
@@ -545,7 +475,7 @@ export const GamePage = () => {
                 )}
 
                 {/* Ghost hover preview only on empty cells when it is your turn */}
-                {cell === null && isMyTurn && status === 'playing' && !activeRoundWinner && (
+                {cell === null && isMyTurn && status === 'playing' && (
                   <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 transition-opacity duration-150 pointer-events-none">
                     {playerSymbol === 'X' ? (
                       <X size={48} strokeWidth={3} className="text-primary" />
@@ -569,8 +499,8 @@ export const GamePage = () => {
             <div className="text-xl font-black">{currentPlayer}</div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Round</div>
-            <div className="text-xl font-black text-primary">{currentRoundNum}</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Match</div>
+            <div className="text-xl font-black text-zinc-500">{matchId ? matchId.slice(0, 4) : '-'}</div>
           </div>
         </div>
 
@@ -595,4 +525,3 @@ export const GamePage = () => {
     </div>
   );
 };
-

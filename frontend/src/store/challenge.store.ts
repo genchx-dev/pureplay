@@ -24,7 +24,7 @@ interface ChallengeState {
 export const useChallengeStore = create<ChallengeState>((set, get) => ({
   incomingChallenges: [],
   sentChallenge: null,
-  mockMode: true, // Default to true so frontend UI simulation works instantly in browser
+  mockMode: false, // Default to false so real API endpoints are used by default
   isPolling: false,
 
   fetchIncoming: async () => {
@@ -39,7 +39,18 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
       }
 
       const { data } = await matchmakingApi.getIncomingChallenges();
-      set({ incomingChallenges: data });
+      const normalized = (data as any[]).map((c) => ({
+        id: String(c.id),
+        gameType: c.gameType || c.game_type,
+        stake: Number(c.stake ?? c.stake_amount ?? 0),
+        challenger: {
+          id: String(c.challenger?.id ?? c.from_user_details?.id ?? c.from_user),
+          username: c.challenger?.username ?? c.from_user_details?.username ?? 'Opponent',
+          tier: c.challenger?.tier ?? c.from_user_details?.tier ?? 'Bronze',
+          rank: Number(c.challenger?.rank ?? c.from_user_details?.rank ?? 1000),
+        }
+      }));
+      set({ incomingChallenges: normalized });
     } catch (error) {
       console.warn('Backend challenges endpoint failed, keeping local simulated state:', error);
       // Fail silently to prevent crashing the dev interface if backend routes aren't ready
@@ -97,10 +108,11 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
 
     try {
       const { data } = await matchmakingApi.acceptChallenge(challengeId);
+      const matchId = data.matchId || (data as any).match_id;
       set((state) => ({
         incomingChallenges: state.incomingChallenges.filter((c) => c.id !== challengeId),
       }));
-      return `/game/${data.matchId}`;
+      return `/game/${matchId}`;
     } catch (error) {
       console.error('Failed to accept challenge:', error);
       throw error;

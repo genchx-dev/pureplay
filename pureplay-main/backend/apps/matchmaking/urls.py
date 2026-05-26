@@ -9,6 +9,11 @@ urlpatterns = [
     path('available-players/', views.available_players_view),
     path('challenge/', views.challenge_player_view),
 
+    # Frontend expected challenge endpoints
+    path('challenges/incoming/', views.incoming_challenges, name='challenges-incoming-frontend'),
+    path('challenges/<int:challenge_id>/accept/', views.accept_challenge, name='challenge-accept-frontend'),
+    path('challenges/<int:challenge_id>/decline/', views.decline_challenge, name='challenge-decline-frontend'),
+
     # New challenge endpoints (note: use views. prefix)
     path('send-challenge/', views.send_challenge, name='send-challenge'),
     path('accept-challenge/<int:challenge_id>/', views.accept_challenge, name='accept-challenge'),

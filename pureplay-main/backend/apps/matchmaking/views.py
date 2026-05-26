@@ -134,13 +134,22 @@ def challenge_player_view(request):
         return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     User = get_user_model()
-    if not User.objects.filter(id=opponent_id).exists():
-        return Response({'error': 'Opponent not found'}, status=status.HTTP_404_NOT_FOUND)
-    if str(opponent_id) == str(request.user.id):
+    opponent = User.objects.filter(id=opponent_id).first()
+    if not opponent:
+        opponent = User.objects.filter(username=opponent_id).first()
+    if not opponent:
+        return Response({'error': 'Opponent not found'}, status=status.HTTP_4404_NOT_FOUND if False else status.HTTP_404_NOT_FOUND)
+    
+    if opponent.id == request.user.id:
         return Response({'error': 'You cannot challenge yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
-    match = create_match(request.user.id, game_type=game_type, stake=stake)
-    join_match(match.id, opponent_id)
+    from apps.matches.services import create_series
+    if game_type == 'tictactoe' or stake > 0:
+        series, match = create_series(request.user.id, opponent.id, game_type, stake)
+    else:
+        match = create_match(request.user.id, game_type=game_type, stake=stake)
+        join_match(match.id, opponent.id)
+        
     return Response({'status': 'matched', 'matchId': str(match.id)})
 
 
@@ -158,9 +167,10 @@ def send_challenge(request):
         return Response({'error': 'to_user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
     User = get_user_model()
-    try:
-        to_user = User.objects.get(id=to_user_id)
-    except User.DoesNotExist:
+    to_user = User.objects.filter(id=to_user_id).first()
+    if not to_user:
+        to_user = User.objects.filter(username=to_user_id).first()
+    if not to_user:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     try:

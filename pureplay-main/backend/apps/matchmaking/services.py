@@ -95,9 +95,15 @@ class ChallengeService:
         if challenge.to_user != accepting_user:
             raise ValueError("You are not the recipient of this challenge")
 
-        # Lock stake from challenger (only for staked challenges)
+        # Verify balances for staked challenges before match creation (stake will be locked by create_series -> lock_stake)
         if challenge.stake_amount > 0:
-            WalletService.lock_funds(challenge.from_user, challenge.stake_amount)
+            challenger_wallet = WalletService.get_wallet(challenge.from_user)
+            if challenger_wallet.balance < challenge.stake_amount:
+                raise ValueError("Challenger no longer has sufficient balance for this stake")
+            
+            acceptor_wallet = WalletService.get_wallet(accepting_user)
+            if acceptor_wallet.balance < challenge.stake_amount:
+                raise ValueError("Insufficient balance to accept this staked challenge")
 
         # ============================================================
         # CREATE MATCH OR SERIES (best‑of‑3 for Tic Tac Toe)

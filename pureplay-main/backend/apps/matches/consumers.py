@@ -8,7 +8,6 @@ from channels.db import database_sync_to_async
 from rest_framework.authtoken.models import Token
 
 from .services import make_move, player_symbol, skip_expired_turn, get_match_model
-# ❌ removed: from .services import settle_match_result   # no longer needed
 
 
 class MatchConsumer(AsyncWebsocketConsumer):
@@ -69,28 +68,20 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 self.user.id,
                 position
             )
+            # make_move returns (match, event_type)
             match = res[0]
             event_type = res[1]
-            completed_board = res[2] if len(res) > 2 else None
         except ValueError as exc:
             await self.send_error(str(exc))
             return
 
-        # =========================
-        # ROUND OVER FLOW
-        # =========================
-        if event_type == 'ROUND_OVER':
-            await self.handle_round_over(match, completed_board)
-            return
+        series_info = self.get_series_info(match)
 
-        # =========================
-        # GAME OVER FLOW
-        # =========================
         if event_type == 'GAME_OVER':
-            await self.handle_game_over(match)
+            await self.handle_game_over(match, series_info)
             return
 
-        # normal move broadcast
+        # Broadcast MOVE_MADE
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -98,48 +89,27 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 'board': match.game_state['board'],
                 'nextPlayer': match.game_state['currentPlayer'],
                 'turnEndsAt': match.game_state['turnEndsAt'],
+                'series': series_info,
             }
         )
 
         await self.schedule_turn_timeout()
 
     # =========================
-    # ROUND OVER HANDLER
+    # GAME OVER HANDLER
     # =========================
 
-    async def handle_round_over(self, match, completed_board=None):
-        board = completed_board if completed_board is not None else match.game_state['board']
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'round_over',
-                'roundWinner': match.game_state.get('roundWinner'),
-                'currentRound': match.game_state.get('currentRound'),
-                'roundScores': match.game_state.get('roundScores'),
-                'board': board,
-                'currentPlayer': match.game_state.get('currentPlayer'),
-                'turnEndsAt': match.game_state.get('turnEndsAt'),
-            }
-        )
-
-    # =========================
-    # GAME OVER HANDLER (NO DUPLICATE SETTLEMENT)
-    # =========================
-
-    async def handle_game_over(self, match):
+    async def handle_game_over(self, match, series_info=None):
         winner_symbol = match.game_state.get('winner')
 
-        # ❌ Settlement already done inside make_move (wallet + ranking)
-        # Do NOT call settle_match_result here.
-
-        # ✅ Broadcast final state with board
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'game_over',
                 'winner': winner_symbol,
                 'reason': 'board_full' if winner_symbol == 'draw' else 'three_in_row',
-                'board': match.game_state['board'],   # ✅ final board for frontend
+                'board': match.game_state['board'],
+                'series': series_info,
             }
         )
 
@@ -153,6 +123,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'board': event['board'],
             'nextPlayer': event['nextPlayer'],
             'turnEndsAt': event['turnEndsAt'],
+            'series': event.get('series'),
         })
 
     async def turn_skip(self, event):
@@ -162,6 +133,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'nextPlayer': event['nextPlayer'],
             'board': event['board'],
             'turnEndsAt': event['turnEndsAt'],
+            'series': event.get('series'),
         })
 
     async def game_over(self, event):
@@ -169,28 +141,43 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'type': 'GAME_OVER',
             'winner': event['winner'],
             'reason': event['reason'],
-            'board': event['board'],   # ✅ frontend receives final board
+            'board': event['board'],
+            'series': event.get('series'),
         })
 
-    async def round_over(self, event):
+    async def next_match_event(self, event):
         await self.send_json({
-            'type': 'ROUND_OVER',
-            'roundWinner': event['roundWinner'],
-            'currentRound': event['currentRound'],
-            'roundScores': event['roundScores'],
+            'type': 'NEXT_MATCH',
+            'matchId': event['matchId']
+        })
+
+    async def broadcast_match_start(self, event):
+        """Handler for when match becomes active (second player joins)."""
+        match = await self.get_match()
+        symbol = player_symbol(match, self.user.id)
+        await self.send_json({
+            'type': 'MATCH_START',
+            'matchId': event['matchId'],
             'board': event['board'],
             'currentPlayer': event['currentPlayer'],
+            'playerSymbol': symbol,
             'turnEndsAt': event['turnEndsAt'],
+            'player1_username': event['player1_username'],
+            'player2_username': event['player2_username'],
+            'player1Username': event['player1_username'],
+            'player2Username': event['player2_username'],
+            'series': event['series'],
         })
 
     # =========================
-    # MATCH START
+    # MATCH START (initial connect)
     # =========================
 
     async def send_match_start(self):
         match = await self.get_match()
         symbol = player_symbol(match, self.user.id)
         state = match.game_state or {}
+        series_info = self.get_series_info(match)
 
         await self.send_json({
             'type': 'MATCH_START',
@@ -201,8 +188,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'turnEndsAt': state.get('turnEndsAt'),
             'player1Username': match.player1.username,
             'player2Username': match.player2.username if match.player2 else None,
+            'player1_username': match.player1.username,
+            'player2_username': match.player2.username if match.player2 else None,
             'currentRound': state.get('currentRound', 1),
             'roundScores': state.get('roundScores', {'X': 0, 'O': 0}),
+            'series': series_info,
         })
 
     # =========================
@@ -241,6 +231,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
             return
 
         match, skipped_player = result
+        series_info = self.get_series_info(match)
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -250,6 +241,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 'nextPlayer': match.game_state['currentPlayer'],
                 'board': match.game_state['board'],
                 'turnEndsAt': match.game_state['turnEndsAt'],
+                'series': series_info,
             }
         )
 
@@ -258,6 +250,16 @@ class MatchConsumer(AsyncWebsocketConsumer):
     # =========================
     # HELPERS
     # =========================
+
+    def get_series_info(self, match):
+        if not match.series:
+            return None
+        return {
+            'id': str(match.series.id),
+            'player1_wins': match.series.player1_wins,
+            'player2_wins': match.series.player2_wins,
+            'is_complete': match.series.is_complete(),
+        }
 
     async def send_error(self, message):
         await self.send_json({'type': 'ERROR', 'message': message})
@@ -283,14 +285,4 @@ class MatchConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_match(self):
-        return get_match_model().objects.select_related('player1', 'player2').get(id=self.match_id)
-
-    @database_sync_to_async
-    def get_user_by_symbol(self, match, symbol):
-        players = match.game_state.get('players', {})
-        player_id = players.get(symbol)
-
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-
-        return User.objects.get(id=player_id)
+        return get_match_model().objects.select_related('player1', 'player2', 'series').get(id=self.match_id)
