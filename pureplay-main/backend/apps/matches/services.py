@@ -318,7 +318,7 @@ def skip_expired_turn(match_id):
 
         deadline = datetime.fromisoformat(turn_ends_at.replace('Z', '+00:00'))
 
-        if timezone.now() < deadline:
+        if timezone.now() < deadline + timedelta(seconds=5):
             return None
 
         # Use engine to get opponent symbol

@@ -223,7 +223,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
 
         wait_seconds = max(
             0,
-            (deadline - datetime.now(tz=deadline.tzinfo)).total_seconds()
+            (deadline - datetime.now(tz=deadline.tzinfo)).total_seconds() + 5.0
         )
 
         self.turn_task = asyncio.create_task(
