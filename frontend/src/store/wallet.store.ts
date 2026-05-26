@@ -195,3 +195,13 @@ useWalletStore.subscribe((state) => {
     localStorage.setItem('demo_transactions', JSON.stringify(state.transactions));
   }
 });
+
+// Reset wallet state when user logs out to prevent cross-user data leakage
+useAuthStore.subscribe((state) => {
+  if (!state.isAuthenticated) {
+    const currentWalletState = useWalletStore.getState();
+    if (currentWalletState.balance !== 0 || currentWalletState.transactions.length > 0) {
+      useWalletStore.setState({ balance: 0, transactions: [], error: null });
+    }
+  }
+});

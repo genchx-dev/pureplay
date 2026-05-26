@@ -9,9 +9,6 @@ export const ChallengeOverlay = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   
-  if (pathname.startsWith('/game')) {
-    return null;
-  }
   const {
     incomingChallenges,
     sentChallenge,
@@ -22,6 +19,10 @@ export const ChallengeOverlay = () => {
   
   const fetchBalance = useWalletStore((state) => state.fetchBalance);
   const fetchTransactions = useWalletStore((state) => state.fetchTransactions);
+
+  if (pathname.startsWith('/game')) {
+    return null;
+  }
 
   const handleAccept = async (id: string) => {
     try {

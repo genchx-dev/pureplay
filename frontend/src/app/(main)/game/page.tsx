@@ -78,6 +78,7 @@ export const GamePage = () => {
     roundWinner,
     setRoundWinner,
     setBoard,
+    currentRound,
   } = useGameStore();
 
   // Demo round tracking state
@@ -155,6 +156,17 @@ export const GamePage = () => {
     }
   }, [roundWinner, isDemoMode, setRoundWinner, setBoard]);
 
+  // Synchronize browser URL with the active matchId in the store (for series round transitions)
+  const storeMatchId = useGameStore((state) => state.matchId);
+  useEffect(() => {
+    if (!isDemoMode && storeMatchId && matchId && storeMatchId !== matchId) {
+      const timer = setTimeout(() => {
+        navigate(`/game/${storeMatchId}`);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [storeMatchId, matchId, isDemoMode, navigate]);
+
   const handleDemoReset = () => {
     reconnect();
     setDemoRound(1);
@@ -209,20 +221,22 @@ export const GamePage = () => {
           ? (demoIsGameOver ? 'You Lose' : 'Round Lost')
           : (series && !isSeriesComplete ? 'Round Lost' : 'You Lose'));
 
+  const nextRoundNum = (isDemoMode ? demoRound : currentRound) + 1;
+
   const resultDescription = isDemoMode
     ? winner === 'draw'
-      ? 'Both players held the board. Moving to next round.'
+      ? `Both players held the board. Round ${nextRoundNum} starting shortly...`
       : didWin
-      ? (demoIsGameOver ? 'Great game! You won the practice series.' : 'You won this round! Preparing next match...')
-      : (demoIsGameOver ? 'Good try! Opponent won the practice series.' : 'Opponent won this round. Preparing next match...')
+      ? (demoIsGameOver ? 'Great game! You won the practice series.' : `You won this round! Round ${nextRoundNum} starting shortly...`)
+      : (demoIsGameOver ? 'Good try! Opponent won the practice series.' : `Opponent won this round. Round ${nextRoundNum} starting shortly...`)
     : winner === 'draw'
-    ? 'Both players held the board. ' + (series ? 'Moving to next round.' : 'Stakes are returned for this round.')
+    ? 'Both players held the board. ' + (series ? `Round ${nextRoundNum} starting shortly.` : 'Stakes are returned for this round.')
     : didWin
     ? (series && !isSeriesComplete
-        ? 'You won this round! Waiting for next match...'
+        ? `You won this round! Round ${nextRoundNum} starting shortly...`
         : 'Clean finish. Your wallet will update with the match payout.')
     : (series && !isSeriesComplete
-        ? `${winner || 'Opponent'} wins this round. Preparing next match...`
+        ? `${winner || 'Opponent'} wins this round. Round ${nextRoundNum} starting shortly...`
         : `${winner || 'Opponent'} wins this round.`);
 
   const getCellClasses = (idx: number, cell: string | null) => {
@@ -295,7 +309,7 @@ export const GamePage = () => {
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Opponent</span>
               <div className="mt-1 flex gap-1">
                 {[0, 1].map((i) => (
-                  <div key={i} className={`h-1.5 w-8 rounded-full ${i < opponentWins ? 'bg-primary shadow-[0_0_8px_rgba(255,204,51,0.4)]' : 'bg-zinc-800'}`} />
+                  <div key={i} className={`h-1.5 w-8 rounded-full ${i < opponentWins ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'bg-zinc-800'}`} />
                 ))}
               </div>
             </div>
@@ -485,8 +499,8 @@ export const GamePage = () => {
             <div className="text-xl font-black">{currentPlayer}</div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Match</div>
-            <div className="text-xl font-black text-zinc-500">{matchId ? matchId.slice(0, 4) : '-'}</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Round</div>
+            <div className="text-xl font-black text-primary">{isDemoMode ? demoRound : currentRound}</div>
           </div>
         </div>
 

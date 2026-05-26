@@ -75,6 +75,12 @@ def create_match(player1_id, game_type='tictactoe', stake=0, series=None, game_n
     engine = get_engine(game_type)
     initial_state = engine.get_initial_state(str(player1_id), '', stake=stake_decimal)
     initial_state['turnEndsAt'] = None
+    if series:
+        initial_state['currentRound'] = game_number
+        initial_state['roundScores'] = {
+            'X': series.player1_wins,
+            'O': series.player2_wins
+        }
 
     with transaction.atomic():
         match = Match.objects.create(
