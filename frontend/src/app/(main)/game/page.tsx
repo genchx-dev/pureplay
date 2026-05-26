@@ -1,5 +1,6 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useGameStore } from '../../../store/game.store';
 import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
@@ -74,18 +75,15 @@ export const GamePage = () => {
   const {
     player1Username,
     player2Username,
-    currentRound,
-    roundScores,
     roundWinner,
     setRoundWinner,
     setBoard,
   } = useGameStore();
 
   // Demo round tracking state
-  const [demoRound, setDemoRound] = useState(1);
+  const [demoRound, setDemoRound] = useState<number>(1);
   const [demoScores, setDemoScores] = useState<Record<string, number>>({ X: 0, O: 0 });
-  const [demoRoundWinner, setDemoRoundWinner] = useState<string | null>(null);
-  const [demoIsGameOver, setDemoIsGameOver] = useState(false);
+  const [demoIsGameOver, setDemoIsGameOver] = useState<boolean>(false);
   const [demoFinalWinner, setDemoFinalWinner] = useState<string | null>(null);
 
   // For series: map wins to local 'You' and 'Opponent'
@@ -122,8 +120,6 @@ export const GamePage = () => {
   // Demo mode best-of-three engine simulation
   useEffect(() => {
     if (isDemoMode && winner && !demoIsGameOver) {
-      setDemoRoundWinner(winner);
-      
       let nextScores = { ...demoScores };
       if (winner !== 'draw') {
         nextScores = {
@@ -137,18 +133,11 @@ export const GamePage = () => {
       if (nextScores.X >= 2 || nextScores.O >= 2) {
         setDemoIsGameOver(true);
         setDemoFinalWinner(nextScores.X >= 2 ? 'X' : 'O');
-        
-        // Final game-over cleanup
-        const timer = setTimeout(() => {
-          setDemoRoundWinner(null);
-        }, 3500);
-        return () => clearTimeout(timer);
       } else {
         // Prepare next round
         const timer = setTimeout(() => {
-          setDemoRoundWinner(null);
           reconnect(); // Reset local board
-          setDemoRound(prev => prev + 1);
+          setDemoRound((prev: number) => prev + 1);
         }, 3500);
         return () => clearTimeout(timer);
       }
@@ -170,7 +159,6 @@ export const GamePage = () => {
     reconnect();
     setDemoRound(1);
     setDemoScores({ X: 0, O: 0 });
-    setDemoRoundWinner(null);
     setDemoIsGameOver(false);
     setDemoFinalWinner(null);
   };
@@ -207,15 +195,13 @@ export const GamePage = () => {
   const authUser = user?.username || 'YOU';
   const player1Name = isDemoMode ? authUser : (player1Username || 'Player 1');
   const player2Name = isDemoMode ? 'ShadowMaster' : (player2Username || 'Player 2');
-  const currentRoundNum = isDemoMode ? demoRound : currentRound;
-  const currentRoundScores = isDemoMode ? demoScores : roundScores;
-  const activeRoundWinner = isDemoMode ? demoRoundWinner : roundWinner;
 
   const amountWon = payout?.winnerAmount || estWinPot;
+  const didDemoWin = demoIsGameOver ? demoFinalWinner === playerSymbol : didWin;
   const resultTitle =
     winner === 'draw'
       ? 'Draw Match'
-      : didWin
+      : (isDemoMode ? didDemoWin : didWin)
       ? (isDemoMode
           ? (demoIsGameOver ? 'You Won' : 'Round Won')
           : (series && !isSeriesComplete ? 'Round Won' : `Won ${formatMoney(amountWon)}`))
@@ -303,7 +289,7 @@ export const GamePage = () => {
               </div>
             </div>
             <div className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/50">
-              Best of 3
+              {isDemoMode ? `Round ${demoRound}` : series ? `Round ${series.player1_wins + series.player2_wins + 1}` : 'Best of 3'}
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Opponent</span>
@@ -369,11 +355,11 @@ export const GamePage = () => {
             )}
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
-                onClick={() => navigate('/matchmaking')}
+                onClick={isDemoMode ? handleDemoReset : () => navigate('/matchmaking')}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-black"
               >
                 <Swords size={15} />
-                Rematch
+                {isDemoMode ? 'Play Again' : 'Rematch'}
               </button>
               <button
                 onClick={() => navigate('/')}
@@ -409,7 +395,7 @@ export const GamePage = () => {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 1</span>
-              <span className="text-sm font-bold">YOU ({playerSymbol || '...'})</span>
+              <span className="text-sm font-bold">{player1Name} ({playerSymbol || '...'})</span>
             </div>
           </div>
 
@@ -432,7 +418,7 @@ export const GamePage = () => {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 2</span>
-              <span className="text-sm font-bold text-zinc-500">OPPONENT</span>
+              <span className="text-sm font-bold text-zinc-500">{player2Name}</span>
             </div>
           </div>
         </div>
