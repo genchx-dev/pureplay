@@ -38,6 +38,24 @@ export const TIER_BADGES: Record<string, string> = {
   ruby: rubyIcon,
 };
 
+export const getTierBadgeUrl = (tierName?: string): string => {
+  if (!tierName) return TIER_BADGES.bronze;
+  const name = tierName.toLowerCase();
+  switch (name) {
+    case 'wood': return TIER_BADGES.wood;
+    case 'copper': return TIER_BADGES.copper;
+    case 'bronze': return TIER_BADGES.bronze;
+    case 'iron': return TIER_BADGES.iron;
+    case 'silver': return TIER_BADGES.silver;
+    case 'gold': return TIER_BADGES.gold;
+    case 'diamond': return TIER_BADGES.diamond;
+    case 'platinum': return TIER_BADGES.platinum;
+    case 'titanium': return TIER_BADGES.titanium;
+    case 'ruby': return TIER_BADGES.ruby;
+    default: return TIER_BADGES.bronze;
+  }
+};
+
 /** Renders a tier badge SVG with paint containment to avoid scroll jank */
 const BadgeImg = ({ src, alt, size = 14 }: { src: string; alt: string; size?: number }) => (
   <span
@@ -175,7 +193,7 @@ export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) =
         <div className="bg-gradient-to-b from-zinc-900 to-black rounded-3xl border border-zinc-800 p-4 sm:p-6">
           <div className="flex items-end justify-center gap-2 sm:gap-3">
             {podiumData.map(({ player, label, height, ring, badgeIdx }) => {
-              const badgeUrl = TIER_BADGES[player.tier.toLowerCase()] || bronzeIcon;
+              const badgeUrl = getTierBadgeUrl(player.tier);
               return (
                 <div key={player.username} className="flex flex-col items-center gap-2 flex-1 min-w-0">
                   {/* Avatar */}
@@ -279,7 +297,7 @@ export const LeaderboardPage = ({ onChallenge }: { onChallenge?: () => void }) =
                   >
                     {/* Rank */}
                     <div className={`text-sm font-black ${isTop3 ? 'text-primary' : 'text-zinc-600'}`}>
-                      {player.rank <= 3 ? ['🥇', '🥈', '🥉'][player.rank - 1] : player.rank}
+                      {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
                     </div>
 
                     {/* Player + tier */}

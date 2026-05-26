@@ -22,7 +22,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useRankingStore } from '../../../store/ranking.store';
 import { getTierByXp, getNextTier } from '../../../utils/tier';
-import { TIER_BADGES } from '../dashboard/LeaderboardPage';
+import { getTierBadgeUrl } from '../dashboard/LeaderboardPage';
 
 export const MePage = () => {
   const navigate = useNavigate();
@@ -74,7 +74,7 @@ export const MePage = () => {
     xpRemaining = nextTier.minXp - xp;
   }
 
-  const badgeUrl = TIER_BADGES[currentTier.name.toLowerCase()] || TIER_BADGES.bronze;
+  const badgeUrl = getTierBadgeUrl(currentTier.name);
 
   return (
     <div className="px-4 pb-24 pt-6 space-y-6 max-w-2xl mx-auto">

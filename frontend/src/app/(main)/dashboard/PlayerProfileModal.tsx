@@ -1,6 +1,6 @@
 import { X, Swords, Trophy, TrendingUp } from 'lucide-react';
 import { getTierByXp } from '../../../utils/tier';
-import { TIER_BADGES } from './LeaderboardPage';
+import { getTierBadgeUrl } from './LeaderboardPage';
 import type { LeaderboardPlayer } from '../../../types/ranking.types';
 
 interface PlayerProfileModalProps {
@@ -12,7 +12,7 @@ interface PlayerProfileModalProps {
 
 export const PlayerProfileModal = ({ player, isMe, onClose, onChallenge }: PlayerProfileModalProps) => {
   const tierConfig = getTierByXp(player.xp);
-  const badgeUrl = TIER_BADGES[tierConfig.name.toLowerCase()] || TIER_BADGES.bronze;
+  const badgeUrl = getTierBadgeUrl(tierConfig.name);
   const total = player.wins + player.losses + player.draws;
   const winRate = total > 0 ? Math.round((player.wins / total) * 100) : 0;
 
