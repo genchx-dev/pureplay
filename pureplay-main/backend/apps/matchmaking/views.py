@@ -31,7 +31,7 @@ def parse_stake(value):
 def join_queue_view(request):
     game_type = request.data.get('gameType', 'tictactoe')
     mode = request.data.get('mode', 'quick_match')
-    if game_type != 'tictactoe' or mode != 'quick_match':
+    if game_type not in ['tictactoe', 'chess'] or mode != 'quick_match':
         return Response({'error': 'Unsupported matchmaking request'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -56,7 +56,7 @@ def cancel_queue_view(request):
 @permission_classes([permissions.IsAuthenticated])
 def open_matches_view(request):
     game_type = request.query_params.get('gameType', 'tictactoe')
-    if game_type != 'tictactoe':
+    if game_type not in ['tictactoe', 'chess']:
         return Response({'error': 'Unsupported game type'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:

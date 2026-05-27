@@ -133,17 +133,17 @@ Ranking system calculations are implemented, but endpoints are still pending.
 
 ## 🎮 6. Game Catalog & Multi-Engine Scaling
 
-Tic Tac Toe is the only fully playable game. Other games are in planning.
+Tic Tac Toe and Chess are fully playable. Other games are in planning.
 
 ### Backend Tasks
 - [x] **State Machine Abstraction**: Generic `AbstractGameEngine` interface supporting various formats.
-- [ ] **Add Game Engines**: WebSocket consumer + move validator for each new game.
+- [x] **Add Game Engines**: WebSocket consumer + move validator for Tic Tac Toe and Chess.
 - [ ] **Live Activity Feed**: Spectator lobby feed.
 
 ### Frontend Tasks
-- [x] **Game Prototypes**: Tic Tac Toe board fully implemented.
+- [x] **Game Prototypes**: Tic Tac Toe board and ChessBoard fully implemented.
 - [ ] **Game Prototypes (Other)**: React boards/controllers for Basketball, Snooker, Reversi, etc.
-- [ ] **Visual Customization**: Styled assets and turn indicators per game.
+- [x] **Visual Customization**: Styled assets and turn indicators for Tic Tac Toe and Chess.
 
 ---
 

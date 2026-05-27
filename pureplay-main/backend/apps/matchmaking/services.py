@@ -110,8 +110,8 @@ class ChallengeService:
         # ============================================================
         # CREATE MATCH OR SERIES (best‑of‑3 for Tic Tac Toe)
         # ============================================================
-        if challenge.game_type == 'tictactoe' or challenge.stake_amount > 0:
-            # Tic Tac Toe or staked challenge → best‑of‑3 series
+        if challenge.game_type in ['tictactoe', 'chess'] or challenge.stake_amount > 0:
+            # Tic Tac Toe/Chess or staked challenge → best‑of‑3 series
             series, match = create_series(
                 challenge.from_user.id,
                 challenge.to_user.id,
