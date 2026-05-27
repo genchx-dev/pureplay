@@ -260,12 +260,12 @@ export const GamePage = () => {
       'group relative rounded-2xl border-2 flex items-center justify-center transition-all duration-200 active:scale-95 disabled:cursor-default aspect-square';
 
     if (isWinner) {
-      return `${base} border-primary bg-primary/10 shadow-[0_0_18px_2px_rgba(255,204,51,0.35)] scale-[1.04]`;
+      return `${base} border-primary bg-primary/20 shadow-[0_0_18px_2px_rgba(255,204,51,0.4)] scale-[1.04]`;
     }
     if (cell === null && isMyTurn) {
-      return `${base} bg-background border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer`;
+      return `${base} bg-black/35 backdrop-blur-xs border-zinc-700/60 hover:border-primary/50 hover:bg-primary/10 cursor-pointer`;
     }
-    return `${base} bg-background border-border`;
+    return `${base} bg-black/35 border-zinc-700/60`;
   };
 
   return (
@@ -474,7 +474,10 @@ export const GamePage = () => {
             />
           </div>
         ) : (
-          <div className="bg-card p-4 rounded-[2.5rem] border border-border shadow-2xl mb-10">
+          <div
+            className="p-6 rounded-[2.5rem] border border-zinc-800/80 shadow-2xl mb-10 bg-cover bg-center"
+            style={{ backgroundImage: 'url(/tictactoe-assets/oak-wood.svg)' }}
+          >
             <div className="grid grid-cols-3 gap-3">
               {Array.isArray(board) && board.map((cell, idx) => (
                 <button
