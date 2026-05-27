@@ -111,14 +111,14 @@ def accept_open_match(queue_id: str, player2_id: int) -> str:
     match_id = entry['match_id']
     match = Match.objects.get(id=match_id)
     
-    # If it's Tic Tac Toe or Chess, ensure it's a series (best of 3)
-    if entry['game_type'] in ['tictactoe', 'chess'] and not match.series:
+    # If it's Tic Tac Toe, ensure it's a series (best of 3)
+    if entry['game_type'] == 'tictactoe' and not match.series:
         player2 = User.objects.get(id=player2_id)
         series = Series.objects.create(
             player1=match.player1,
             player2=player2,
             stake=Decimal(str(entry['stake'])),
-            game_type=entry['game_type']
+            game_type='tictactoe'
         )
         match.series = series
         match.save(update_fields=['series'])

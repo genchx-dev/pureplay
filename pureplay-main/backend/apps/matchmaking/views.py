@@ -145,7 +145,7 @@ def challenge_player_view(request):
         return Response({'error': 'You cannot challenge yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
     from apps.matches.services import create_series
-    if game_type in ['tictactoe', 'chess'] or stake > 0:
+    if game_type == 'tictactoe' or (stake > 0 and game_type != 'chess'):
         series, match = create_series(request.user.id, opponent.id, game_type, stake, board_theme=board_theme)
     else:
         match = create_match(request.user.id, game_type=game_type, stake=stake, board_theme=board_theme)

@@ -136,6 +136,11 @@ export const GamePage = () => {
   // Demo mode best-of-three engine simulation
   useEffect(() => {
     if (isDemoMode && winner && !demoIsGameOver) {
+      if (gameTypeParam === 'chess') {
+        setDemoIsGameOver(true);
+        setDemoFinalWinner(winner);
+        return;
+      }
       let nextScores = { ...demoScores };
       if (winner !== 'draw') {
         nextScores = {
@@ -307,7 +312,7 @@ export const GamePage = () => {
         </header>
 
         {/* Series Progress */}
-        {(status === 'playing' || status === 'finished' || status === 'draw') && (
+        {gameType === 'tictactoe' && (status === 'playing' || status === 'finished' || status === 'draw') && (
           <div className="mb-6 flex items-center justify-center gap-4">
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">You</span>
@@ -540,8 +545,12 @@ export const GamePage = () => {
             </div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Round</div>
-            <div className="text-xl font-black text-primary">{isDemoMode ? demoRound : currentRound}</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+              {gameType === 'chess' ? 'Format' : 'Round'}
+            </div>
+            <div className="text-sm font-black text-primary uppercase mt-0.5">
+              {gameType === 'chess' ? 'Single' : (isDemoMode ? demoRound : currentRound)}
+            </div>
           </div>
         </div>
 

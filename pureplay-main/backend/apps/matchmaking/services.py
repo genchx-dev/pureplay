@@ -110,8 +110,8 @@ class ChallengeService:
         # ============================================================
         # CREATE MATCH OR SERIES (best‑of‑3 for Tic Tac Toe)
         # ============================================================
-        if challenge.game_type in ['tictactoe', 'chess'] or challenge.stake_amount > 0:
-            # Tic Tac Toe/Chess or staked challenge → best‑of‑3 series
+        if challenge.game_type == 'tictactoe' or (challenge.stake_amount > 0 and challenge.game_type != 'chess'):
+            # Tic Tac Toe or non-chess staked challenge → best‑of‑3 series
             series, match = create_series(
                 challenge.from_user.id,
                 challenge.to_user.id,
@@ -120,8 +120,8 @@ class ChallengeService:
                 board_theme=challenge.board_theme
             )
         else:
-            # Other free games → single match
-            match = create_match(challenge.from_user.id, challenge.game_type, stake=0, board_theme=challenge.board_theme)
+            # Other free games or Chess (free/staked) → single match
+            match = create_match(challenge.from_user.id, challenge.game_type, stake=challenge.stake_amount, board_theme=challenge.board_theme)
             join_match(match.id, challenge.to_user.id)
 
         challenge.status = 'accepted'
