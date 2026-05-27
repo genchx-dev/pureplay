@@ -17,7 +17,7 @@ export const matchmakingApi = {
   cancelQueue: () =>
     api.post<{ status: 'cancelled' }>('/matchmaking/queue/cancel/'),
 
-  getOpenMatches: (gameType: 'tictactoe', stake?: number) =>
+  getOpenMatches: (gameType: 'tictactoe' | 'chess', stake?: number) =>
     api.get<OpenMatch[]>('/matchmaking/open-matches/', {
       params: { gameType, ...(stake ? { stake } : {}) },
     }),
@@ -25,7 +25,7 @@ export const matchmakingApi = {
   acceptOpenMatch: (request: AcceptOpenMatchRequest) =>
     api.post<JoinQueueResponse>('/matchmaking/open-matches/accept/', request),
 
-  getAvailablePlayers: (gameType: 'tictactoe', stake: number) =>
+  getAvailablePlayers: (gameType: 'tictactoe' | 'chess', stake: number) =>
     api.get<AvailablePlayer[]>('/matchmaking/available-players/', {
       params: { gameType, stake },
     }),

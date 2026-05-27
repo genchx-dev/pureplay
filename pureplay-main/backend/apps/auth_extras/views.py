@@ -14,4 +14,5 @@ def get_profile(request):
         'rank': getattr(user, 'rank', 1000),
         'avatar': getattr(user, 'avatar', None),
         'phone': getattr(user, 'phone_number', None),
+        'chess_customizations': getattr(user, 'chess_customizations', {}),
     })

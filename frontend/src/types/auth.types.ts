@@ -1,3 +1,11 @@
+export interface ChessCustomizations {
+  pieceSet: string;
+  gradStart: string;
+  gradEnd: string;
+  stroke: string;
+  shadow: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -8,6 +16,7 @@ export interface User {
   phone?: string;
   xp?: number;
   mmr?: number;
+  chess_customizations?: ChessCustomizations;
 }
 
 export interface AuthResponse {

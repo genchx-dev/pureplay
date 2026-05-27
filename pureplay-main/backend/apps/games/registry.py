@@ -1,8 +1,9 @@
 from apps.games.tictactoe.engine import TicTacToeEngine
+from apps.games.chess.engine import ChessEngine
 
 ENGINES = {
     'tictactoe': TicTacToeEngine(),
-    # Add more games here
+    'chess': ChessEngine(),
 }
 
 def get_engine(game_type: str):

@@ -21,6 +21,7 @@ export interface GameCatalogItem {
   engine: 'turn_based' | 'rng' | 'physics' | 'puzzle' | 'arcade';
   frontendStatus: 'live' | 'prototype_needed' | 'not_started';
   backendStatus: 'live' | 'planned' | 'not_started';
+  turnTimerSeconds?: number;
 }
 
 export const gameCatalog: GameCatalogItem[] = [
@@ -33,6 +34,7 @@ export const gameCatalog: GameCatalogItem[] = [
     engine: 'turn_based',
     frontendStatus: 'live',
     backendStatus: 'live',
+    turnTimerSeconds: 10,
   },
   {
     id: 'basketball',
@@ -74,10 +76,12 @@ export const gameCatalog: GameCatalogItem[] = [
     id: 'chess',
     label: 'Chess',
     image: chessLogo,
-    status: 'coming_soon',
+    status: 'playable',
+    route: '/matchmaking?gameType=chess',
     engine: 'turn_based',
-    frontendStatus: 'prototype_needed',
-    backendStatus: 'planned',
+    frontendStatus: 'live',
+    backendStatus: 'live',
+    turnTimerSeconds: 20,
   },
   {
     id: 'checkers',

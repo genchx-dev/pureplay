@@ -19,6 +19,11 @@ interface GameStore {
   currentRound: number;
   roundScores: Record<string, number>;
   roundWinner: string | null;
+  gameType: 'tictactoe' | 'chess';
+  boardTheme: string;
+  customStyles: Record<string, any>;
+  legalMoves: string[];
+  fen: string | null;
   decrementTimer: () => void;
   resetTimer: () => void;
   setTimeLeft: (timeLeft: number) => void;
@@ -36,8 +41,18 @@ interface GameStore {
   setCurrentRound: (round: number) => void;
   setRoundScores: (scores: Record<string, number>) => void;
   setRoundWinner: (winner: string | null) => void;
+  setGameType: (gameType: 'tictactoe' | 'chess') => void;
+  setBoardTheme: (theme: string) => void;
+  setCustomStyles: (styles: Record<string, any>) => void;
+  setLegalMoves: (moves: string[]) => void;
+  setFen: (fen: string | null) => void;
   resetGame: () => void;
 }
+
+export const GAME_TIMERS: Record<'tictactoe' | 'chess', number> = {
+  tictactoe: 10,
+  chess: 20,
+};
 
 export const useGameStore = create<GameStore>((set) => ({
   board: Array(9).fill(null),
@@ -55,9 +70,14 @@ export const useGameStore = create<GameStore>((set) => ({
   currentRound: 1,
   roundScores: { X: 0, O: 0 },
   roundWinner: null,
+  gameType: 'tictactoe',
+  boardTheme: 'lichess',
+  customStyles: {},
+  legalMoves: [],
+  fen: null,
   
   decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
-  resetTimer: () => set({ timeLeft: 10 }),
+  resetTimer: () => set((state) => ({ timeLeft: GAME_TIMERS[state.gameType] })),
   setTimeLeft: (timeLeft) => set({ timeLeft }),
   setBoard: (board) => set({ board }),
   setMatchId: (matchId) => set({ matchId }),
@@ -73,19 +93,24 @@ export const useGameStore = create<GameStore>((set) => ({
   setCurrentRound: (currentRound) => set({ currentRound }),
   setRoundScores: (roundScores) => set({ roundScores }),
   setRoundWinner: (roundWinner) => set({ roundWinner }),
+  setGameType: (gameType) => set({ gameType, timeLeft: GAME_TIMERS[gameType] }),
+  setBoardTheme: (boardTheme) => set({ boardTheme }),
+  setCustomStyles: (customStyles) => set({ customStyles }),
+  setLegalMoves: (legalMoves) => set({ legalMoves }),
+  setFen: (fen) => set({ fen }),
   // Logic for turn switching on timeout (Frontend mirror of Backend logic)
   handleTimeout: () => set((state) => ({
     currentPlayer: state.currentPlayer === 'X' ? 'O' : 'X',
-    timeLeft: 10
+    timeLeft: GAME_TIMERS[state.gameType]
   })),
-  resetGame: () => set({ 
-    board: Array(9).fill(null), 
+  resetGame: () => set((state) => ({ 
+    board: state.gameType === 'chess' ? {} : Array(9).fill(null), 
     matchId: null,
     currentPlayer: 'X', 
     playerSymbol: null,
     winner: null, 
     status: 'waiting',
-    timeLeft: 10,
+    timeLeft: GAME_TIMERS[state.gameType],
     error: null,
     payout: null,
     series: null,
@@ -93,6 +118,10 @@ export const useGameStore = create<GameStore>((set) => ({
     player2Username: null,
     currentRound: 1,
     roundScores: { X: 0, O: 0 },
-    roundWinner: null
-  }),
+    roundWinner: null,
+    boardTheme: 'lichess',
+    customStyles: {},
+    legalMoves: [],
+    fen: null
+  })),
 }));

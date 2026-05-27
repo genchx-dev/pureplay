@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Tuple, Optional
 
 class AbstractGameEngine(ABC):
+    turn_seconds: int = 10
+
     @abstractmethod
     def get_initial_state(self, player1_id: str, player2_id: str, **kwargs) -> Dict[str, Any]:
         """Return initial game_state dict with board, currentPlayer, players mapping, etc."""
@@ -30,3 +32,10 @@ class AbstractGameEngine(ABC):
     def get_opponent_symbol(self, symbol: str) -> str:
         """Return the opponent's symbol. Override if not 'X'/'O'."""
         return 'O' if symbol == 'X' else 'X'
+
+    def skip_turn(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Skip the current player's turn. Default swaps currentPlayer."""
+        state = game_state.copy()
+        current = self.get_current_player(state)
+        state['currentPlayer'] = self.get_opponent_symbol(current)
+        return state

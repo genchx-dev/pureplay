@@ -13,7 +13,7 @@ class ChallengeSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = [
             'id', 'from_user', 'to_user', 'game_type', 'stake_amount',
-            'status', 'created_at', 'expires_at',
+            'status', 'board_theme', 'created_at', 'expires_at',
             'from_user_details', 'to_user_details',
         ]
         read_only_fields = ['id', 'status', 'created_at', 'expires_at']

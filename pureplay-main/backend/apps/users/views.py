@@ -18,6 +18,7 @@ def auth_payload(user):
             'rank': getattr(user, 'rank', 1000),
             'avatar': getattr(user, 'avatar', None),
             'phone': getattr(user, 'phone_number', None),
+            'chess_customizations': getattr(user, 'chess_customizations', {}),
         },
     }
 
@@ -47,3 +48,19 @@ class LoginView(generics.GenericAPIView):
         if user:
             return Response(auth_payload(user))
         return Response({'error': 'Invalid credentials'}, status=400)
+
+class UpdateProfileView(generics.UpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(auth_payload(instance))
+

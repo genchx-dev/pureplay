@@ -2,6 +2,7 @@ from typing import Dict, Any, Tuple, Optional
 from apps.games.base.engine import AbstractGameEngine
 
 class TicTacToeEngine(AbstractGameEngine):
+    turn_seconds = 10
     WIN_LINES = (
         (0, 1, 2), (3, 4, 5), (6, 7, 8),
         (0, 3, 6), (1, 4, 7), (2, 5, 8),

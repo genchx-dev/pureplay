@@ -25,6 +25,7 @@ class Challenge(models.Model):
     game_type = models.CharField(max_length=50, default='tictactoe')  # extensible for other games
     stake_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    board_theme = models.CharField(max_length=50, default='random')
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 

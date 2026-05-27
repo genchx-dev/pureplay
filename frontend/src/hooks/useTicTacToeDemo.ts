@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ticTacToeEngine } from '../components/game/tictactoeEngine';
-import type { BoardState, PlayerSymbol } from '../types/game.types';
+import type { PlayerSymbol } from '../types/game.types';
 
 export const useTicTacToeDemo = () => {
-  const [board, setBoard] = useState<BoardState>(Array(9).fill(null));
+  const [board, setBoard] = useState<(PlayerSymbol | null)[]>(Array(9).fill(null));
   const [currentPlayer, setCurrentPlayer] = useState<PlayerSymbol>('X');
   const [winner, setWinner] = useState<PlayerSymbol | 'draw' | null>(null);
   const [timeLeft, setTimeLeft] = useState(10);

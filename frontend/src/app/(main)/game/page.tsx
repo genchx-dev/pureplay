@@ -4,10 +4,12 @@ import { useGameStore } from '../../../store/game.store';
 import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
+import { useChessDemo } from '../../../hooks/useChessDemo';
 import { comingSoonGames, ticTacToeGame } from '../../../data/games';
 import { useWalletStore } from '../../../store/wallet.store';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRankingStore } from '../../../store/ranking.store';
+import { ChessBoard } from '../../../components/game/ChessBoard';
 
 const OPPONENTS = ['QuantumKing', 'ShadowMaster', 'ProGamerX', 'NightOwl', 'CryptoChamp', 'BlitzKing', 'TacticsGod', 'Dominator99', 'FlashPoint', 'XcelPlayer'];
 const getRandomOpponent = (excludeUsername?: string) => {
@@ -55,8 +57,13 @@ export const GamePage = () => {
   const fetchBalance = useWalletStore((state) => state.fetchBalance);
   const fetchTransactions = useWalletStore((state) => state.fetchTransactions);
 
+  const gameTypeParam = searchParams.get('gameType') || 'tictactoe';
   const liveGame = useGameSocket(isDemoMode ? undefined : matchId);
-  const demoGame = useTicTacToeDemo();
+  const tictactoeDemo = useTicTacToeDemo();
+  const chessDemo = useChessDemo();
+  const demoGame = gameTypeParam === 'chess' ? chessDemo : tictactoeDemo;
+  const chessDemoGame = gameTypeParam === 'chess' ? (demoGame as ReturnType<typeof useChessDemo>) : null;
+  
   const {
     board,
     timeLeft,
@@ -71,6 +78,13 @@ export const GamePage = () => {
     reconnect,
   } = isDemoMode ? demoGame : liveGame;
 
+  const setGameType = useGameStore((state) => state.setGameType);
+  useEffect(() => {
+    if (isDemoMode) {
+      setGameType(gameTypeParam as 'tictactoe' | 'chess');
+    }
+  }, [isDemoMode, gameTypeParam, setGameType]);
+
   // Retrieve state and usernames from global store
   const {
     player1Username,
@@ -79,6 +93,7 @@ export const GamePage = () => {
     setRoundWinner,
     setBoard,
     currentRound,
+    gameType,
   } = useGameStore();
 
   // Demo round tracking state
@@ -105,10 +120,10 @@ export const GamePage = () => {
     : series?.is_complete || false;
 
   const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
-  const winningLine = getWinningLine(board);
+  const winningLine = gameType === 'chess' ? null : getWinningLine(Array.isArray(board) ? board : []);
 
   const handleMove = (index: number) => {
-    if (board[index] === null && isMyTurn) {
+    if (gameType !== 'chess' && Array.isArray(board) && board[index] === null && isMyTurn) {
       sendMove(index);
     }
   };
@@ -150,11 +165,11 @@ export const GamePage = () => {
     if (!isDemoMode && roundWinner) {
       const timer = setTimeout(() => {
         setRoundWinner(null);
-        setBoard(Array(9).fill(null));
+        setBoard(gameType === 'chess' ? {} : Array(9).fill(null));
       }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [roundWinner, isDemoMode, setRoundWinner, setBoard]);
+  }, [roundWinner, isDemoMode, setRoundWinner, setBoard, gameType]);
 
   // Synchronize browser URL with the active matchId in the store (for series round transitions)
   const storeMatchId = useGameStore((state) => state.matchId);
@@ -409,7 +424,7 @@ export const GamePage = () => {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 1</span>
-              <span className="text-sm font-bold">{player1Name} ({playerSymbol || '...'})</span>
+              <span className="text-sm font-bold">{player1Name} ({gameType === 'chess' ? 'White ♔' : 'X'})</span>
             </div>
           </div>
 
@@ -432,7 +447,7 @@ export const GamePage = () => {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">Player 2</span>
-              <span className="text-sm font-bold text-zinc-500">{player2Name}</span>
+              <span className="text-sm font-bold text-zinc-500">{player2Name} ({gameType === 'chess' ? 'Black ♚' : 'O'})</span>
             </div>
           </div>
         </div>
@@ -441,62 +456,85 @@ export const GamePage = () => {
           {status === 'playing'
             ? isMyTurn
               ? 'Your Turn'
-              : `${currentPlayer}'s Turn`
+              : `${gameType === 'chess' ? (currentPlayer === 'X' ? 'White' : 'Black') : currentPlayer}'s Turn`
             : 'Waiting for match state'}
         </div>
 
-        <div className="bg-card p-4 rounded-[2.5rem] border border-border shadow-2xl mb-10">
-          <div className="grid grid-cols-3 gap-3">
-            {board.map((cell, idx) => (
-              <button
-                key={idx}
-                disabled={cell !== null || !isMyTurn || status !== 'playing'}
-                onClick={() => handleMove(idx)}
-                className={getCellClasses(idx, cell)}
-              >
-                {/* Placed piece */}
-                {cell === 'X' && (
-                  <span className="animate-pop">
-                    <X
-                      className={winningLine?.includes(idx) ? 'text-primary' : 'text-primary'}
-                      size={48}
-                      strokeWidth={3}
-                    />
-                  </span>
-                )}
-                {cell === 'O' && (
-                  <span className="animate-pop">
-                    <Circle
-                      className={winningLine?.includes(idx) ? 'text-foreground' : 'text-foreground'}
-                      size={40}
-                      strokeWidth={3}
-                    />
-                  </span>
-                )}
-
-                {/* Ghost hover preview only on empty cells when it is your turn */}
-                {cell === null && isMyTurn && status === 'playing' && (
-                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 transition-opacity duration-150 pointer-events-none">
-                    {playerSymbol === 'X' ? (
-                      <X size={48} strokeWidth={3} className="text-primary" />
-                    ) : (
-                      <Circle size={40} strokeWidth={3} className="text-foreground" />
-                    )}
-                  </span>
-                )}
-              </button>
-            ))}
+        {gameType === 'chess' ? (
+          <div className="mb-10 w-full">
+            <ChessBoard
+              board={board as Record<string, string>}
+              currentPlayer={currentPlayer}
+              playerSymbol={playerSymbol}
+              status={status}
+              legalMoves={isDemoMode ? chessDemoGame?.legalMoves : undefined}
+              boardTheme={isDemoMode ? chessDemoGame?.boardTheme : undefined}
+              customStyles={isDemoMode ? chessDemoGame?.customStyles : undefined}
+              sendMove={sendMove as (move: string) => void}
+            />
           </div>
-        </div>
+        ) : (
+          <div className="bg-card p-4 rounded-[2.5rem] border border-border shadow-2xl mb-10">
+            <div className="grid grid-cols-3 gap-3">
+              {Array.isArray(board) && board.map((cell, idx) => (
+                <button
+                  key={idx}
+                  disabled={cell !== null || !isMyTurn || status !== 'playing'}
+                  onClick={() => handleMove(idx)}
+                  className={getCellClasses(idx, cell)}
+                >
+                  {/* Placed piece */}
+                  {cell === 'X' && (
+                    <span className="animate-pop">
+                      <X
+                        className={winningLine?.includes(idx) ? 'text-primary' : 'text-primary'}
+                        size={48}
+                        strokeWidth={3}
+                      />
+                    </span>
+                  )}
+                  {cell === 'O' && (
+                    <span className="animate-pop">
+                      <Circle
+                        className={winningLine?.includes(idx) ? 'text-foreground' : 'text-foreground'}
+                        size={40}
+                        strokeWidth={3}
+                      />
+                    </span>
+                  )}
+
+                  {/* Ghost hover preview only on empty cells when it is your turn */}
+                  {cell === null && isMyTurn && status === 'playing' && (
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 transition-opacity duration-150 pointer-events-none">
+                      {playerSymbol === 'X' ? (
+                        <X size={48} strokeWidth={3} className="text-primary" />
+                      ) : (
+                        <Circle size={40} strokeWidth={3} className="text-foreground" />
+                      )}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">You</div>
-            <div className="text-xl font-black text-primary">{playerSymbol || '-'}</div>
+            <div className="text-sm font-black text-primary">
+              {gameType === 'chess' 
+                ? (playerSymbol === 'X' ? 'White ♔' : playerSymbol === 'O' ? 'Black ♚' : '-')
+                : (playerSymbol || '-')}
+            </div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Turn</div>
-            <div className="text-xl font-black">{currentPlayer}</div>
+            <div className="text-sm font-black">
+              {gameType === 'chess' 
+                ? (currentPlayer === 'X' ? 'White' : 'Black')
+                : currentPlayer}
+            </div>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Round</div>

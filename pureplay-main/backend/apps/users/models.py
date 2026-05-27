@@ -7,6 +7,12 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     tier = models.CharField(max_length=20, default='Bronze')
     rank = models.PositiveIntegerField(default=1000)
+    chess_customizations = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Custom chess styling presets: {set, gradStart, gradEnd, stroke, shadow}"
+    )
+
 
 @receiver(post_save, sender=User)
 def create_user_wallet(sender, instance, created, **kwargs):

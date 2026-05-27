@@ -11,6 +11,9 @@ export const authApi = {
   getProfile: () => 
     api.get<User>('/auth/profile/'),
     
+  updateProfile: (data: Partial<User>) =>
+    api.patch<AuthResponse>('/users/profile/update/', data),
+    
   logout: () => 
     api.post('/auth/logout/'),
 };

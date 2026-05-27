@@ -123,9 +123,10 @@ def available_players_view(request):
 def challenge_player_view(request):
     opponent_id = request.data.get('opponentId')
     game_type = request.data.get('gameType', 'tictactoe')
+    board_theme = request.data.get('boardTheme', 'random')
     if not opponent_id:
         return Response({'error': 'opponentId is required'}, status=status.HTTP_400_BAD_REQUEST)
-    if game_type != 'tictactoe':
+    if game_type not in ['tictactoe', 'chess']:
         return Response({'error': 'Unsupported game type'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -138,16 +139,16 @@ def challenge_player_view(request):
     if not opponent:
         opponent = User.objects.filter(username=opponent_id).first()
     if not opponent:
-        return Response({'error': 'Opponent not found'}, status=status.HTTP_4404_NOT_FOUND if False else status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Opponent not found'}, status=status.HTTP_404_NOT_FOUND)
     
     if opponent.id == request.user.id:
         return Response({'error': 'You cannot challenge yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
     from apps.matches.services import create_series
-    if game_type == 'tictactoe' or stake > 0:
-        series, match = create_series(request.user.id, opponent.id, game_type, stake)
+    if game_type in ['tictactoe', 'chess'] or stake > 0:
+        series, match = create_series(request.user.id, opponent.id, game_type, stake, board_theme=board_theme)
     else:
-        match = create_match(request.user.id, game_type=game_type, stake=stake)
+        match = create_match(request.user.id, game_type=game_type, stake=stake, board_theme=board_theme)
         join_match(match.id, opponent.id)
         
     return Response({'status': 'matched', 'matchId': str(match.id)})
@@ -162,6 +163,7 @@ def send_challenge(request):
     to_user_id = request.data.get('to_user_id')
     stake_amount = request.data.get('stake_amount', 0)
     game_type = request.data.get('game_type', 'tictactoe')
+    board_theme = request.data.get('board_theme', 'random')
 
     if not to_user_id:
         return Response({'error': 'to_user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -179,6 +181,7 @@ def send_challenge(request):
             to_user=to_user,
             stake_amount=stake_amount,
             game_type=game_type,
+            board_theme=board_theme,
         )
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

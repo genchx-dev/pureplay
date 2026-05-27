@@ -2,8 +2,8 @@ import { WSEvent } from './events';
 import { useGameStore } from '../../store/game.store';
 import type { MatchEvent } from '../../types/game.types';
 
-const getSecondsLeft = (turnEndsAt?: string) => {
-  if (!turnEndsAt) return 10;
+const getSecondsLeft = (turnEndsAt?: string, gameType: 'tictactoe' | 'chess' = 'tictactoe') => {
+  if (!turnEndsAt) return gameType === 'chess' ? 20 : 10;
   return Math.max(0, Math.ceil((new Date(turnEndsAt).getTime() - Date.now()) / 1000));
 };
 
@@ -12,13 +12,19 @@ export const handleWSMessage = (event: MessageEvent) => {
     const data = JSON.parse(event.data) as MatchEvent;
     console.log('WS Message:', data);
     const gameStore = useGameStore.getState();
+    const gameType = data.gameType || gameStore.gameType;
     
     switch (data.type) {
       case WSEvent.MOVE_MADE:
         if (data.board) gameStore.setBoard(data.board);
         if (data.nextPlayer) gameStore.setCurrentPlayer(data.nextPlayer);
         if (data.series) gameStore.setSeries(data.series);
-        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        if (data.gameType) gameStore.setGameType(data.gameType);
+        if (data.boardTheme) gameStore.setBoardTheme(data.boardTheme);
+        if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
+        if (data.legalMoves) gameStore.setLegalMoves(data.legalMoves);
+        if (data.fen !== undefined) gameStore.setFen(data.fen);
+        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt, gameType));
         gameStore.setError(null);
         break;
       case WSEvent.MATCH_START:
@@ -33,8 +39,13 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.player2Username) gameStore.setPlayer2Username(data.player2Username);
         if (data.currentRound) gameStore.setCurrentRound(data.currentRound);
         if (data.roundScores) gameStore.setRoundScores(data.roundScores);
+        if (data.gameType) gameStore.setGameType(data.gameType);
+        if (data.boardTheme) gameStore.setBoardTheme(data.boardTheme);
+        if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
+        if (data.legalMoves) gameStore.setLegalMoves(data.legalMoves);
+        if (data.fen !== undefined) gameStore.setFen(data.fen);
         gameStore.setRoundWinner(null);
-        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt, gameType));
         break;
       case WSEvent.ROUND_OVER:
         console.log('Round Over:', data.roundWinner);
@@ -44,14 +55,24 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.board) gameStore.setBoard(data.board);
         if (data.currentPlayer) gameStore.setCurrentPlayer(data.currentPlayer);
         if (data.series) gameStore.setSeries(data.series);
-        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        if (data.gameType) gameStore.setGameType(data.gameType);
+        if (data.boardTheme) gameStore.setBoardTheme(data.boardTheme);
+        if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
+        if (data.legalMoves) gameStore.setLegalMoves(data.legalMoves);
+        if (data.fen !== undefined) gameStore.setFen(data.fen);
+        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt, gameType));
         gameStore.setError(null);
         break;
       case WSEvent.TURN_SKIP:
         if (data.board) gameStore.setBoard(data.board);
         if (data.nextPlayer) gameStore.setCurrentPlayer(data.nextPlayer);
         if (data.series) gameStore.setSeries(data.series);
-        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt));
+        if (data.gameType) gameStore.setGameType(data.gameType);
+        if (data.boardTheme) gameStore.setBoardTheme(data.boardTheme);
+        if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
+        if (data.legalMoves) gameStore.setLegalMoves(data.legalMoves);
+        if (data.fen !== undefined) gameStore.setFen(data.fen);
+        gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt, gameType));
         gameStore.setError(null);
         break;
       case WSEvent.GAME_OVER:
@@ -59,6 +80,10 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.board) gameStore.setBoard(data.board);
         if (data.winner) gameStore.setWinner(data.winner);
         if (data.series) gameStore.setSeries(data.series);
+        if (data.gameType) gameStore.setGameType(data.gameType);
+        if (data.boardTheme) gameStore.setBoardTheme(data.boardTheme);
+        if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
+        if (data.fen !== undefined) gameStore.setFen(data.fen);
         gameStore.setPayout(data.payout || null);
         gameStore.setStatus(data.winner === 'draw' ? 'draw' : 'finished');
         gameStore.setTimeLeft(0);

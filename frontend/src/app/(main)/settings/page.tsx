@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { authApi } from '../../../services/api/auth.api';
 import {
   Wallet,
   Settings as SettingsIcon,
@@ -17,7 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useRankingStore } from '../../../store/ranking.store';
@@ -26,12 +27,112 @@ import { getTierBadgeUrl } from '../dashboard/LeaderboardPage';
 
 export const MePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, logout, isAuthenticated } = useAuth();
   const { transactions } = useWallet(isAuthenticated);
-  const [activeTab, setActiveTab] = useState<'transactions' | 'games'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'games' | 'chess'>(
+    (searchParams.get('tab') as any) || 'transactions'
+  );
   const [showDevPanel, setShowDevPanel] = useState(false);
 
   const { matchHistory, fetchMatchHistory, addMatchResult, addSimulationXp, resetStats } = useRankingStore();
+  const { checkAuth } = useAuth();
+
+  // Sync activeTab on URL query parameters changes
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['transactions', 'games', 'chess'].includes(tab)) {
+      setActiveTab(tab as any);
+    }
+  }, [searchParams]);
+
+  const [saving, setSaving] = useState(false);
+  const [pieceSet, setPieceSet] = useState('fantasy');
+  const [gradStart, setGradStart] = useState('#ffffff');
+  const [gradEnd, setGradEnd] = useState('#bfd3d7');
+  const [stroke, setStroke] = useState('#000000');
+  const [shadow, setShadow] = useState('#000000');
+  const [preset, setPreset] = useState('obsidian');
+  const embedRef = useRef<HTMLEmbedElement>(null);
+
+  // Sync user customizations on load
+  useEffect(() => {
+    if (user?.chess_customizations) {
+      setPieceSet(user.chess_customizations.pieceSet || 'fantasy');
+      setGradStart(user.chess_customizations.gradStart || '#ffffff');
+      setGradEnd(user.chess_customizations.gradEnd || '#bfd3d7');
+      setStroke(user.chess_customizations.stroke || '#000000');
+      setShadow(user.chess_customizations.shadow || '#000000');
+    }
+  }, [user]);
+
+  // Update dynamic preview styling
+  const updatePreview = () => {
+    try {
+      if (!embedRef.current) return;
+      const doc = embedRef.current.getSVGDocument();
+      if (!doc) return;
+      const svg = doc.querySelector('svg');
+      if (!svg) return;
+      
+      const stop0 = svg.querySelector('#fillGradient #stop0');
+      const stop1 = svg.querySelector('#fillGradient #stop1');
+      if (stop0) (stop0 as any).style.stopColor = gradStart;
+      if (stop1) (stop1 as any).style.stopColor = gradEnd;
+      
+      const styleFill = svg.querySelector('#fill-color');
+      const styleStroke = svg.querySelector('#stroke-color');
+      if (styleFill) styleFill.textContent = `.fill-color { fill: ${gradStart}; }`;
+      if (styleStroke) styleStroke.textContent = `.stroke-color { stroke: ${stroke}; }`;
+      
+      const shadowPath = svg.querySelector('#shadow');
+      if (shadowPath) {
+        (shadowPath as any).style.fill = shadow;
+        (shadowPath as any).style.display = '';
+      }
+    } catch (err) {
+      console.warn("SVG preview load warning:", err);
+    }
+  };
+
+  useEffect(() => {
+    updatePreview();
+  }, [pieceSet, gradStart, gradEnd, stroke, shadow, activeTab]);
+
+  const applyPreset = (p: string) => {
+    setPreset(p);
+    if (p === 'custom') return;
+    const presets: Record<string, any> = {
+      obsidian: { grad1: "#ffffff", grad2: "#bfd3d7", stroke: "#000000", shadow: "#101216" },
+      gold: { grad1: "#ffffff", grad2: "#eceff1", stroke: "#37474f", shadow: "#252012" },
+      cyberpunk: { grad1: "#e0f7fa", grad2: "#00e5ff", stroke: "#006064", shadow: "#003b3f" },
+      ice: { grad1: "#e3f2fd", grad2: "#64b5f6", stroke: "#0d47a1", shadow: "#08285c" },
+      emerald: { grad1: "#e8f5e9", grad2: "#81c784", stroke: "#1b5e20", shadow: "#0c3b12" }
+    };
+    const config = presets[p];
+    if (config) {
+      setGradStart(config.grad1);
+      setGradEnd(config.grad2);
+      setStroke(config.stroke);
+      setShadow(config.shadow);
+    }
+  };
+
+  const handleSaveStyles = async () => {
+    setSaving(true);
+    try {
+      await authApi.updateProfile({
+        chess_customizations: { pieceSet, gradStart, gradEnd, stroke, shadow }
+      });
+      await checkAuth();
+      alert("Chess custom styles saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save customizations.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (user?.username) {
@@ -176,26 +277,35 @@ export const MePage = () => {
         <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-2xl border border-zinc-800">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'transactions' ? 'bg-primary text-black shadow-lg' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            <History size={18} />
+            <History size={16} />
             <span>Transactions</span>
           </button>
           <button
             onClick={() => setActiveTab('games')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'games' ? 'bg-primary text-black shadow-lg' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            <Gamepad2 size={18} />
+            <Gamepad2 size={16} />
             <span>Games</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('chess')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'chess' ? 'bg-primary text-black shadow-lg' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Trophy size={16} />
+            <span>Game Styles</span>
           </button>
         </div>
 
         <div className="bg-card rounded-3xl border border-border overflow-hidden">
-          {activeTab === 'transactions' ? (
+          {activeTab === 'transactions' && (
             <div className="divide-y divide-zinc-800/50">
               {transactions.length === 0 && (
                 <div className="p-8 text-center text-sm font-medium text-zinc-500">
@@ -233,7 +343,9 @@ export const MePage = () => {
                 );
               })}
             </div>
-          ) : (
+          )}
+
+          {activeTab === 'games' && (
             <div className="divide-y divide-zinc-800/50">
               {matchHistory.length === 0 && (
                 <div className="p-8 text-center text-sm font-medium text-zinc-500">
@@ -275,6 +387,120 @@ export const MePage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {activeTab === 'chess' && (
+            <div className="p-5 space-y-5">
+              <div className="flex gap-4 items-center bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800/40">
+                <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center relative overflow-hidden">
+                  <embed
+                    ref={embedRef}
+                    src={`/chess-assets/${pieceSet}/k.svg`}
+                    className="w-12 h-12 object-contain"
+                    onLoad={updatePreview}
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Interactive Piece Preview</h4>
+                  <p className="text-[10px] text-zinc-500">Live preview of your styled white King.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block mb-1.5">Art Set</label>
+                  <select
+                    value={pieceSet}
+                    onChange={(e) => setPieceSet(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl py-2 px-3 text-xs outline-none focus:border-primary"
+                  >
+                    <option value="fantasy">Fantasy (Set 1)</option>
+                    <option value="celtic">Celtic (Set 2)</option>
+                    <option value="spatial">Spatial (Set 3)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block mb-1.5">Color Preset</label>
+                  <select
+                    value={preset}
+                    onChange={(e) => applyPreset(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl py-2 px-3 text-xs outline-none focus:border-primary"
+                  >
+                    <option value="obsidian">Obsidian & Silver</option>
+                    <option value="gold">Royal Gold</option>
+                    <option value="cyberpunk">Cyberpunk Neon</option>
+                    <option value="ice">Ice Blue</option>
+                    <option value="emerald">Jade Emerald</option>
+                    <option value="custom">Custom...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t border-zinc-900">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 block mb-1">Grad Start</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={gradStart}
+                        onChange={(e) => { setGradStart(e.target.value); setPreset('custom'); }}
+                        className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-zinc-400">{gradStart}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 block mb-1">Grad End</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={gradEnd}
+                        onChange={(e) => { setGradEnd(e.target.value); setPreset('custom'); }}
+                        className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-zinc-400">{gradEnd}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 block mb-1">Stroke</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={stroke}
+                        onChange={(e) => { setStroke(e.target.value); setPreset('custom'); }}
+                        className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-zinc-400">{stroke}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 block mb-1">Shadow</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={shadow}
+                        onChange={(e) => { setShadow(e.target.value); setPreset('custom'); }}
+                        className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-zinc-400">{shadow}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                disabled={saving}
+                onClick={handleSaveStyles}
+                className="w-full bg-primary hover:bg-primary/95 text-black font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Game Styles'}
+              </button>
             </div>
           )}
         </div>

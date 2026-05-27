@@ -13,9 +13,6 @@ from apps.games.registry import get_engine
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-TURN_SECONDS = 10
-
-
 def get_match_model():
     from .models import Match
     return Match
@@ -30,8 +27,8 @@ def iso(dt):
     return dt.isoformat().replace('+00:00', 'Z')
 
 
-def turn_deadline():
-    return timezone.now() + timedelta(seconds=TURN_SECONDS)
+def turn_deadline(seconds):
+    return timezone.now() + timedelta(seconds=seconds)
 
 
 def player_symbol(match, user_id):
@@ -66,7 +63,8 @@ def create_series(player1_id, player2_id, game_type='tictactoe', stake=0):
 # MATCH CREATION
 # =========================
 
-def create_match(player1_id, game_type='tictactoe', stake=0, series=None, game_number=1):
+def create_match(player1_id, game_type='tictactoe', stake=0, series=None, game_number=1, board_theme='random'):
+    import random
     Match = get_match_model()
     User = get_user_model()
     player1 = User.objects.get(id=player1_id)
@@ -75,6 +73,19 @@ def create_match(player1_id, game_type='tictactoe', stake=0, series=None, game_n
     engine = get_engine(game_type)
     initial_state = engine.get_initial_state(str(player1_id), '', stake=stake_decimal)
     initial_state['turnEndsAt'] = None
+    
+    # Resolve board theme
+    theme = board_theme
+    if theme == 'random':
+        theme = random.choice(['lichess', 'chesscom', 'midnight', 'blue'])
+    initial_state['boardTheme'] = theme
+    
+    # Inject customizations
+    initial_state['customStyles'] = {
+        'player1': player1.chess_customizations or {},
+        'player2': {}
+    }
+
     if series:
         initial_state['currentRound'] = game_number
         initial_state['roundScores'] = {
@@ -95,7 +106,8 @@ def create_match(player1_id, game_type='tictactoe', stake=0, series=None, game_n
     return match
 
 
-def create_series(player1_id, player2_id, game_type='tictactoe', stake=0):
+def create_series(player1_id, player2_id, game_type='tictactoe', stake=0, board_theme='random'):
+    import random
     from .models import Series, Match
     User = get_user_model()
     player1 = User.objects.get(id=player1_id)
@@ -120,7 +132,19 @@ def create_series(player1_id, player2_id, game_type='tictactoe', stake=0):
         initial_state['currentRound'] = 1
         initial_state['roundScores'] = {'X': 0, 'O': 0}
         initial_state['roundWinner'] = None
-        initial_state['turnEndsAt'] = iso(turn_deadline())
+        initial_state['turnEndsAt'] = iso(turn_deadline(engine.turn_seconds))
+        
+        # Resolve board theme
+        theme = board_theme
+        if theme == 'random':
+            theme = random.choice(['lichess', 'chesscom', 'midnight', 'blue'])
+        initial_state['boardTheme'] = theme
+        
+        # Inject customizations
+        initial_state['customStyles'] = {
+            'player1': player1.chess_customizations or {},
+            'player2': player2.chess_customizations or {}
+        }
 
         match = Match.objects.create(
             player1=player1,
@@ -171,8 +195,14 @@ def join_match(match_id, player2_id):
             raise ValueError("Match already has two players")
 
         state['players'] = players
-        deadline = turn_deadline()
+        deadline = turn_deadline(engine.turn_seconds)
         state['turnEndsAt'] = iso(deadline)
+        
+        # Inject customizations now that Player 2 has joined
+        state['customStyles'] = {
+            'player1': match.player1.chess_customizations or {},
+            'player2': player2.chess_customizations or {}
+        }
 
         match.player2 = player2
         match.status = 'active'
@@ -259,12 +289,14 @@ def make_move(match_id, player_id, move):
                 
                 if series:
                     next_game_number = match.game_number + 1
+                    prev_theme = match.game_state.get('boardTheme', 'random')
                     new_match = create_match(
                         match.player1.id,
                         game_type,
                         stake=0,
                         series=series,
-                        game_number=next_game_number
+                        game_number=next_game_number,
+                        board_theme=prev_theme
                     )
                     join_match(new_match.id, match.player2.id)
                     
@@ -309,12 +341,14 @@ def make_move(match_id, player_id, move):
                         series.save()
                     else:
                         next_game_number = match.game_number + 1
+                        prev_theme = match.game_state.get('boardTheme', 'random')
                         new_match = create_match(
                             match.player1.id,
                             game_type,
                             stake=0,
                             series=series,
-                            game_number=next_game_number
+                            game_number=next_game_number,
+                            board_theme=prev_theme
                         )
                         join_match(new_match.id, match.player2.id)
 
@@ -344,7 +378,7 @@ def make_move(match_id, player_id, move):
         # =========================
         # CONTINUE GAME
         # =========================
-        new_state['turnEndsAt'] = iso(turn_deadline())
+        new_state['turnEndsAt'] = iso(turn_deadline(engine.turn_seconds))
         current_player_symbol = engine.get_current_player(new_state)
         if current_player_symbol == 'X':
             match.current_turn = match.player1
@@ -375,9 +409,9 @@ def skip_expired_turn(match_id):
             return None
         engine = get_engine(state.get('gameType', 'tictactoe'))
         current = engine.get_current_player(state)
-        next_player = engine.get_opponent_symbol(current)
-        state['currentPlayer'] = next_player
-        state['turnEndsAt'] = iso(turn_deadline())
+        state = engine.skip_turn(state)
+        state['turnEndsAt'] = iso(turn_deadline(engine.turn_seconds))
+        next_player = state['currentPlayer']
         if next_player == 'X':
             match.current_turn = match.player1
         else:

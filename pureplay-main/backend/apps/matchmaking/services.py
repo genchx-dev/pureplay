@@ -30,7 +30,7 @@ class ChallengeService:
         )
 
     @classmethod
-    def send_challenge(cls, from_user, to_user, stake_amount=0, game_type='tictactoe'):
+    def send_challenge(cls, from_user, to_user, stake_amount=0, game_type='tictactoe', board_theme='random'):
         if from_user == to_user:
             raise ValueError("Cannot challenge yourself")
 
@@ -57,6 +57,7 @@ class ChallengeService:
             to_user=to_user,
             game_type=game_type,
             stake_amount=stake,
+            board_theme=board_theme,
             expires_at=expires_at,
             status='pending'
         )
@@ -71,6 +72,7 @@ class ChallengeService:
                 'from_user_id': from_user.id,
                 'stake_amount': float(stake),
                 'game_type': game_type,
+                'board_theme': board_theme,
                 'expires_at': expires_at.isoformat(),
             }
         )
@@ -114,11 +116,12 @@ class ChallengeService:
                 challenge.from_user.id,
                 challenge.to_user.id,
                 challenge.game_type,
-                challenge.stake_amount
+                challenge.stake_amount,
+                board_theme=challenge.board_theme
             )
         else:
             # Other free games → single match
-            match = create_match(challenge.from_user.id, challenge.game_type, stake=0)
+            match = create_match(challenge.from_user.id, challenge.game_type, stake=0, board_theme=challenge.board_theme)
             join_match(match.id, challenge.to_user.id)
 
         challenge.status = 'accepted'

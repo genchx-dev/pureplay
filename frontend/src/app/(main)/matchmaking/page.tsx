@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
-import { ArrowLeft, Bot, Loader2, RefreshCw, Swords, Users } from 'lucide-react';
+import { ArrowLeft, Bot, Loader2, RefreshCw, Swords, Users, Settings } from 'lucide-react';
 import { matchmakingApi } from '../../../services/api/matchmaking.api';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -19,6 +19,8 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export const MatchmakingPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const gameType = (searchParams.get('gameType') || 'tictactoe') as 'tictactoe' | 'chess';
   const { isAuthenticated } = useAuth();
   const { balance = 0, fetchBalance, fetchTransactions } = useWallet(isAuthenticated);
   const [mode, setMode] = useState<MatchmakingMode>('quick_match');
@@ -41,7 +43,7 @@ export const MatchmakingPage = () => {
   const loadOpenMatches = useCallback(async (silent = false) => {
     if (!silent) setOpenMatchesLoading(true);
     try {
-      const { data } = await matchmakingApi.getOpenMatches('tictactoe', stake);
+      const { data } = await matchmakingApi.getOpenMatches(gameType, stake);
       setOpenMatches(data);
       return data;
     } catch (error) {
@@ -51,11 +53,11 @@ export const MatchmakingPage = () => {
     } finally {
       if (!silent) setOpenMatchesLoading(false);
     }
-  }, [stake]);
+  }, [gameType, stake]);
 
   const checkQueueStatus = useCallback(async () => {
     const { data } = await matchmakingApi.joinQueue({
-      gameType: 'tictactoe',
+      gameType,
       stake,
       mode: 'quick_match',
     });
@@ -67,7 +69,7 @@ export const MatchmakingPage = () => {
     }
 
     return false;
-  }, [navigate, refreshWallet, stake]);
+  }, [gameType, navigate, refreshWallet, stake]);
 
   useEffect(() => {
     if (mode !== 'challenge') return;
@@ -78,7 +80,7 @@ export const MatchmakingPage = () => {
       setPlayersHint('');
 
       try {
-        const { data } = await matchmakingApi.getAvailablePlayers('tictactoe', stake);
+        const { data } = await matchmakingApi.getAvailablePlayers(gameType, stake);
         if (!cancelled) {
           setAvailablePlayers(data);
           setPlayersHint(data.length === 0 ? 'No players are available at this stake right now.' : '');
@@ -100,7 +102,7 @@ export const MatchmakingPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [mode, stake]);
+  }, [gameType, mode, stake]);
 
   useEffect(() => {
     if (mode !== 'quick_match' || status !== 'waiting') return;
@@ -128,7 +130,12 @@ export const MatchmakingPage = () => {
     };
   }, [checkQueueStatus, loadOpenMatches, mode, status]);
 
-  const handleModeChange = async (nextMode: MatchmakingMode) => {
+  const handleModeChange = async (nextMode: MatchmakingMode | 'customize') => {
+    if (nextMode === 'customize') {
+      navigate('/?tab=chess');
+      return;
+    }
+
     if (status === 'waiting') {
       await matchmakingApi.cancelQueue().catch(() => undefined);
     }
@@ -224,7 +231,7 @@ export const MatchmakingPage = () => {
 
     try {
       const { data } = await matchmakingApi.challengePlayer({
-        gameType: 'tictactoe',
+        gameType,
         stake,
         opponentId,
       });
@@ -269,7 +276,7 @@ export const MatchmakingPage = () => {
   };
 
   const goToBotDemo = () => {
-    navigate('/game/demo?demo=1');
+    navigate(`/game/demo?demo=1&gameType=${gameType}`);
   };
 
   const isQueueBusy = mode === 'quick_match' && (status === 'searching' || status === 'waiting');
@@ -277,6 +284,7 @@ export const MatchmakingPage = () => {
     { id: 'bot' as const, icon: Bot, label: 'Practice Bot', description: 'Frontend-only demo for instant testing.' },
     { id: 'quick_match' as const, icon: Swords, label: 'Quick Match', description: 'Search stakes, publish yours, and accept a player.' },
     { id: 'challenge' as const, icon: Users, label: 'Challenge Player', description: 'Pick a player and send a direct invite.' },
+    ...(gameType === 'chess' ? [{ id: 'customize' as any, icon: Settings, label: 'Game Styles', description: 'Configure custom piece sets and color presets.' }] : []),
   ];
   const stakeOptions = [100, 500, 1000];
 
@@ -295,7 +303,7 @@ export const MatchmakingPage = () => {
         <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-zinc-950 to-black p-6 shadow-2xl shadow-primary/5 md:p-8">
           <div className="mb-8">
             <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-primary">
-              Tic Tac Toe Lobby
+              {gameType === 'chess' ? 'Chess' : 'Tic Tac Toe'} Lobby
             </div>
             <h1 className="text-3xl font-shrikhand uppercase tracking-widest text-primary md:text-4xl">Choose Match Type</h1>
             <p className={`mt-3 max-w-2xl text-sm font-medium ${status === 'error' ? 'text-red-400' : 'text-zinc-400'}`}>
@@ -308,7 +316,7 @@ export const MatchmakingPage = () => {
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className={`grid gap-4 ${gameType === 'chess' ? 'md:grid-cols-4 sm:grid-cols-2' : 'md:grid-cols-3'}`}>
             {modeOptions.map((option) => (
               <button
                 key={option.id}

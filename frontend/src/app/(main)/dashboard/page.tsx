@@ -94,7 +94,10 @@ const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: 
 
 export const HomePage = () => {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'home');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'chess' ? 'me' : (tab && ['home', 'challenge', 'tournament', 'leaderboard', 'me'].includes(tab) ? tab : 'home');
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isAuthenticated } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
@@ -103,6 +106,8 @@ export const HomePage = () => {
     const tab = searchParams.get('tab');
     if (tab && ['home', 'challenge', 'tournament', 'leaderboard', 'me'].includes(tab)) {
       setActiveTab(tab);
+    } else if (tab === 'chess') {
+      setActiveTab('me');
     }
   }, [searchParams]);
 

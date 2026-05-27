@@ -48,7 +48,7 @@ export const connectWebSocket = (matchId: string) => {
   };
 };
 
-export const sendMove = (position: number) => {
+export const sendMove = (position: number | string) => {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ 
       type: WSEvent.MAKE_MOVE, 

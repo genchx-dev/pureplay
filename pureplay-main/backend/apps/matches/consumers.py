@@ -90,6 +90,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 'nextPlayer': match.game_state['currentPlayer'],
                 'turnEndsAt': match.game_state['turnEndsAt'],
                 'series': series_info,
+                'gameType': match.game_state.get('gameType', 'tictactoe'),
+                'boardTheme': match.game_state.get('boardTheme', 'lichess'),
+                'customStyles': match.game_state.get('customStyles', {}),
+                'legalMoves': match.game_state.get('legalMoves', []),
+                'fen': match.game_state.get('fen'),
             }
         )
 
@@ -101,15 +106,24 @@ class MatchConsumer(AsyncWebsocketConsumer):
 
     async def handle_game_over(self, match, series_info=None):
         winner_symbol = match.game_state.get('winner')
+        game_type = match.game_state.get('gameType', 'tictactoe')
+        if game_type == 'chess':
+            reason = 'checkmate' if winner_symbol != 'draw' else 'draw'
+        else:
+            reason = 'board_full' if winner_symbol == 'draw' else 'three_in_row'
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'game_over',
                 'winner': winner_symbol,
-                'reason': 'board_full' if winner_symbol == 'draw' else 'three_in_row',
+                'reason': reason,
                 'board': match.game_state['board'],
                 'series': series_info,
+                'gameType': game_type,
+                'boardTheme': match.game_state.get('boardTheme', 'lichess'),
+                'customStyles': match.game_state.get('customStyles', {}),
+                'fen': match.game_state.get('fen'),
             }
         )
 
@@ -124,6 +138,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'nextPlayer': event['nextPlayer'],
             'turnEndsAt': event['turnEndsAt'],
             'series': event.get('series'),
+            'gameType': event.get('gameType', 'tictactoe'),
+            'boardTheme': event.get('boardTheme', 'lichess'),
+            'customStyles': event.get('customStyles', {}),
+            'legalMoves': event.get('legalMoves', []),
+            'fen': event.get('fen'),
         })
 
     async def turn_skip(self, event):
@@ -134,6 +153,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'board': event['board'],
             'turnEndsAt': event['turnEndsAt'],
             'series': event.get('series'),
+            'gameType': event.get('gameType', 'tictactoe'),
+            'boardTheme': event.get('boardTheme', 'lichess'),
+            'customStyles': event.get('customStyles', {}),
+            'legalMoves': event.get('legalMoves', []),
+            'fen': event.get('fen'),
         })
 
     async def game_over(self, event):
@@ -143,6 +167,10 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'reason': event['reason'],
             'board': event['board'],
             'series': event.get('series'),
+            'gameType': event.get('gameType', 'tictactoe'),
+            'boardTheme': event.get('boardTheme', 'lichess'),
+            'customStyles': event.get('customStyles', {}),
+            'fen': event.get('fen'),
         })
 
     async def next_match_event(self, event):
@@ -155,6 +183,7 @@ class MatchConsumer(AsyncWebsocketConsumer):
         """Handler for when match becomes active (second player joins)."""
         match = await self.get_match()
         symbol = player_symbol(match, self.user.id)
+        state = match.game_state or {}
         await self.send_json({
             'type': 'MATCH_START',
             'matchId': event['matchId'],
@@ -167,6 +196,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'player1Username': event['player1_username'],
             'player2Username': event['player2_username'],
             'series': event['series'],
+            'gameType': state.get('gameType', 'tictactoe'),
+            'boardTheme': state.get('boardTheme', 'lichess'),
+            'customStyles': state.get('customStyles', {}),
+            'legalMoves': state.get('legalMoves', []),
+            'fen': state.get('fen'),
         })
 
     # =========================
@@ -193,6 +227,11 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'currentRound': state.get('currentRound', 1),
             'roundScores': state.get('roundScores', {'X': 0, 'O': 0}),
             'series': series_info,
+            'gameType': state.get('gameType', 'tictactoe'),
+            'boardTheme': state.get('boardTheme', 'lichess'),
+            'customStyles': state.get('customStyles', {}),
+            'legalMoves': state.get('legalMoves', []),
+            'fen': state.get('fen'),
         })
 
     # =========================
