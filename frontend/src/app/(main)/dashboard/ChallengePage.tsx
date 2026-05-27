@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChallengeStore } from '../../../store/challenge.store';
 import { useRankingStore } from '../../../store/ranking.store';
 import { useAuthStore } from '../../../store/auth.store';
+import { useWalletStore } from '../../../store/wallet.store';
 import { TierBadge } from './LeaderboardPage';
 import { PlayerProfileModal } from './PlayerProfileModal';
 import type { LeaderboardPlayer } from '../../../types/ranking.types';
@@ -15,6 +16,33 @@ export const ChallengePage = () => {
   const { user } = useAuthStore();
   const simulateIncoming = useChallengeStore((state) => state.simulateIncoming);
   const sendChallenge = useChallengeStore((state) => state.sendChallenge);
+  
+  const {
+    incomingChallenges,
+    acceptChallenge,
+    declineChallenge,
+  } = useChallengeStore();
+
+  const fetchBalance = useWalletStore((state) => state.fetchBalance);
+  const fetchTransactions = useWalletStore((state) => state.fetchTransactions);
+
+  const handleAccept = async (id: string) => {
+    try {
+      const matchRoute = await acceptChallenge(id);
+      await Promise.allSettled([fetchBalance(), fetchTransactions()]);
+      navigate(matchRoute);
+    } catch (err) {
+      alert('Could not accept challenge. Please try again.');
+    }
+  };
+
+  const handleDecline = async (id: string) => {
+    try {
+      await declineChallenge(id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const {
     searchResults,
@@ -65,6 +93,70 @@ export const ChallengePage = () => {
             handleChallenge(opponent.username, opponent.username);
           }}
         />
+      )}
+
+      {/* Pending Challenges Section */}
+      {incomingChallenges.length > 0 && (
+        <section className="rounded-3xl border border-red-500/20 bg-zinc-950 p-5 sm:p-6 shadow-xl shadow-red-500/5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
+                <Bell size={18} className="animate-pulse" />
+              </div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-red-400">
+                Pending Invitations ({incomingChallenges.length})
+              </h2>
+            </div>
+            <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            {incomingChallenges.map((challenge) => (
+              <div
+                key={challenge.id}
+                className="rounded-2xl border border-zinc-800 bg-black/40 p-4 flex flex-col justify-between gap-4 hover:border-zinc-700/60 transition-all"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-xs font-black uppercase tracking-widest text-white truncate">
+                      {challenge.challenger.username}
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <TierBadge tierName={challenge.challenger.tier} xp={100} />
+                      <span className="text-zinc-500 text-[10px] font-bold font-mono">Rank {challenge.challenger.rank}</span>
+                    </div>
+                    <div className="mt-2 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Game: <span className="text-primary">{challenge.gameType === 'chess' ? 'Chess' : 'Tic Tac Toe'}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Stake</div>
+                    <div className="text-sm font-black text-primary font-mono mt-0.5">
+                      {formatMoney(challenge.stake)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleDecline(challenge.id)}
+                    className="rounded-xl border border-zinc-800 bg-card py-2 text-xs font-black uppercase tracking-widest text-zinc-400 transition-all hover:border-red-500/40 hover:text-red-400 active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <X size={12} />
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => handleAccept(challenge.id)}
+                    className="rounded-xl bg-primary py-2 text-xs font-black uppercase tracking-widest text-black shadow-lg shadow-primary/10 transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <Swords size={12} strokeWidth={2.5} />
+                    Accept
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Main Challenge Card */}

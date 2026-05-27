@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
 import { useTournaments } from '../../../hooks/useTournaments';
+import { useChallengeStore } from '../../../store/challenge.store';
 // Import modular components
 import { Header } from '../../../components/layout/Header';
 import { Sidebar } from '../../../components/layout/Sidebar';
@@ -101,6 +102,9 @@ export const HomePage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isAuthenticated } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
+  
+  const incomingChallenges = useChallengeStore((state) => state.incomingChallenges);
+  const challengeCount = incomingChallenges.length;
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -162,7 +166,14 @@ export const HomePage = () => {
                 onClick={() => setActiveTab(item.id)}
                 className={`flex flex-col items-center gap-1 transition-all ${activeTab === item.id ? 'text-primary' : 'text-zinc-500'}`}
               >
-                <item.icon size={24} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                <div className="relative">
+                  <item.icon size={24} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                  {item.id === 'challenge' && challengeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white ring-1 ring-zinc-950 animate-pulse">
+                      {challengeCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
               </button>
             ))}

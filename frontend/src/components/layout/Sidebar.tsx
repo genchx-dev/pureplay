@@ -1,4 +1,5 @@
 import { type LucideIcon, Menu, ChevronLeft, Wallet } from 'lucide-react';
+import { useChallengeStore } from '../../store/challenge.store';
 
 interface NavItem {
   id: string;
@@ -25,6 +26,9 @@ export const Sidebar = ({
   isAuthenticated,
   balance
 }: SidebarProps) => {
+  const incomingChallenges = useChallengeStore((state) => state.incomingChallenges);
+  const challengeCount = incomingChallenges.length;
+
   return (
     <aside className={`hidden md:flex flex-col bg-card border-r border-border h-screen sticky top-0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
       <div className={`p-6 border-b border-border flex items-center ${isCollapsed ? 'justify-center' : 'justify-end'}`}>
@@ -48,7 +52,16 @@ export const Sidebar = ({
               : 'text-zinc-400 hover:bg-zinc-800 hover:text-foreground'
             } ${isCollapsed ? 'justify-center px-0' : ''}`}
           >
-            <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+            <div className="relative flex items-center justify-center">
+              <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+              {item.id === 'challenge' && challengeCount > 0 && (
+                <span className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white ring-1 animate-pulse ${
+                  activeTab === item.id ? 'ring-primary text-black' : 'ring-card text-white'
+                }`}>
+                  {challengeCount}
+                </span>
+              )}
+            </div>
             {!isCollapsed && <span className="text-sm font-semibold">{item.label}</span>}
           </button>
         ))}

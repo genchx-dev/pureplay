@@ -80,10 +80,11 @@ Matchmaking support for invites is active. Queue, incoming challenges and accept
 - [ ] **Auto-Expiry Task**: Background job (Celery beat or Django-Q) to mark challenges as `expired` after 60 seconds and refund any locked stake.
 
 ### Frontend Tasks
-- [x] **Incoming Challenge Overlay**: Modal on Dashboard showing opponent name, stake, Accept/Decline buttons.
+- [x] **Inline Challenge Inbox**: Render pending challenges inside the Challenge tab page.
+- [x] **Notification Badges**: Renders pulsing red count badge on the desktop sidebar and mobile bottom nav.
 - [x] **Waiting Spinner**: "Challenge Sent — Waiting..." spinner with Cancel option for the challenger.
 - [x] **Queue Polling**: Frontend polls `GET /api/matchmaking/incoming-challenges/` every 4 seconds.
-- [ ] **Global Challenge Listener**: Move `<ChallengeOverlay />` from the Dashboard page into the global layout wrapper (e.g. `layout.tsx`) so players receive invitations from any page on the platform.
+- [x] **Global Challenge Listener**: Polling is registered globally in `App.tsx` and triggers the waiting overlay or badge updates across pages.
 
 ---
 
