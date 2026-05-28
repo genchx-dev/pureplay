@@ -10,6 +10,8 @@ import { useChallengeStore } from './store/challenge.store';
 
 const GamePage = lazy(() => import('./app/(main)/game/page').then(module => ({ default: module.GamePage })));
 const WalletPage = lazy(() => import('./app/(main)/wallet/page').then(module => ({ default: module.WalletPage })));
+const AdminDashboard = lazy(() => import('./app/(admin)/page'));
+const WhotPage = lazy(() => import('./app/(main)/game/whot/page').then(module => ({ default: module.WhotPage })));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -19,6 +21,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return isAuthenticated ? <Navigate to="/" /> : <>{children}</>;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!user?.is_staff) return <Navigate to="/" />;
+  return <>{children}</>;
 };
 
 export function App() {
@@ -75,6 +85,20 @@ export function App() {
               <GamePage />
             </Suspense>
           </ProtectedRoute>
+        } />
+        <Route path="/whot" element={
+          <ProtectedRoute>
+            <Suspense fallback={<div className="text-primary p-8">Loading Whot...</div>}>
+              <WhotPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <AdminRoute>
+            <Suspense fallback={<div className="text-primary p-8">Loading Admin Panel...</div>}>
+              <AdminDashboard />
+            </Suspense>
+          </AdminRoute>
         } />
         <Route path="/" element={<HomePage />} />
         {/* Fallback for unknown routes */}

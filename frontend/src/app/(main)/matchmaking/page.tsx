@@ -20,7 +20,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export const MatchmakingPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const gameType = (searchParams.get('gameType') || 'tictactoe') as 'tictactoe' | 'chess';
+  const gameType = (searchParams.get('gameType') || 'tictactoe') as 'tictactoe' | 'chess' | 'whot';
   const { isAuthenticated } = useAuth();
   const { balance = 0, fetchBalance, fetchTransactions } = useWallet(isAuthenticated);
   const [mode, setMode] = useState<MatchmakingMode>('quick_match');
@@ -276,7 +276,11 @@ export const MatchmakingPage = () => {
   };
 
   const goToBotDemo = () => {
-    navigate(`/game/demo?demo=1&gameType=${gameType}`);
+    if (gameType === 'whot') {
+      navigate('/whot');
+    } else {
+      navigate(`/game/demo?demo=1&gameType=${gameType}`);
+    }
   };
 
   const isQueueBusy = mode === 'quick_match' && (status === 'searching' || status === 'waiting');
@@ -303,7 +307,7 @@ export const MatchmakingPage = () => {
         <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-zinc-950 to-black p-6 shadow-2xl shadow-primary/5 md:p-8">
           <div className="mb-8">
             <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-primary">
-              {gameType === 'chess' ? 'Chess' : 'Tic Tac Toe'} Lobby
+              {gameType === 'chess' ? 'Chess' : (gameType === 'whot' ? 'Whot! Cards' : 'Tic Tac Toe')} Lobby
             </div>
             <h1 className="text-3xl font-shrikhand uppercase tracking-widest text-primary md:text-4xl">Choose Match Type</h1>
             <p className={`mt-3 max-w-2xl text-sm font-medium ${status === 'error' ? 'text-red-400' : 'text-zinc-400'}`}>

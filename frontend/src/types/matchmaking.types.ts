@@ -1,7 +1,7 @@
 export type MatchmakingMode = 'bot' | 'quick_match' | 'challenge';
 
 export interface JoinQueueRequest {
-  gameType: 'tictactoe' | 'chess';
+  gameType: 'tictactoe' | 'chess' | 'whot';
   stake: number;
   mode: 'quick_match';
 }
@@ -13,7 +13,7 @@ export interface JoinQueueResponse {
 
 export interface OpenMatch {
   id: string;
-  gameType: 'tictactoe' | 'chess';
+  gameType: 'tictactoe' | 'chess' | 'whot';
   stake: number;
   player: {
     id: string;
@@ -37,7 +37,7 @@ export interface AvailablePlayer {
 }
 
 export interface ChallengePlayerRequest {
-  gameType: 'tictactoe' | 'chess';
+  gameType: 'tictactoe' | 'chess' | 'whot';
   stake: number;
   opponentId: string;
 }
@@ -50,7 +50,7 @@ export interface ChallengePlayerResponse {
 
 export interface IncomingChallenge {
   id: string;
-  gameType: 'tictactoe' | 'chess';
+  gameType: 'tictactoe' | 'chess' | 'whot';
   stake: number;
   challenger: {
     id: string;

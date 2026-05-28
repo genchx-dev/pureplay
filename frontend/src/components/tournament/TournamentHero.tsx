@@ -12,6 +12,8 @@ interface TournamentHeroProps {
   prizes: PrizeDistribution[];
   gameImage: string;
   onEnter: () => void;
+  status?: string;
+  winners?: { rank: number; username: string }[];
 }
 
 export const TournamentHero = ({
@@ -25,8 +27,11 @@ export const TournamentHero = ({
   prizes,
   gameImage,
   onEnter,
+  status,
+  winners,
 }: TournamentHeroProps) => {
   const spotsLeft = Math.max(0, maxParticipants - joinedUsers);
+  const isCompleted = status === 'completed';
 
   return (
     <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-zinc-900 to-black p-5 shadow-xl shadow-primary/5">
@@ -36,79 +41,138 @@ export const TournamentHero = ({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-300">
-            <Flame size={12} />
-            Main Event
-          </div>
+          {isCompleted ? (
+            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+              <Trophy size={12} className="animate-pulse" />
+              Tournament Completed
+            </div>
+          ) : (
+            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-300">
+              <Flame size={12} />
+              Main Event
+            </div>
+          )}
           <h2 className="text-xl font-black uppercase tracking-wide text-white md:text-2xl">{title}</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-[0.82fr_1.18fr] gap-4">
-        <div className="space-y-3">
-          <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-              <Clock size={12} />
-              Countdown
-            </div>
-            <div className="text-2xl font-black text-primary">{startsIn}</div>
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-              <Users size={12} />
-              Players
-            </div>
-            <div className="text-lg font-black text-white">{joinedUsers}/{maxParticipants}</div>
-            <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">{spotsLeft} slots left</div>
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-              <Coins size={12} />
-              Entry
-            </div>
-            <div className="text-lg font-black text-white">NGN {entryFee.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary">
-              <Trophy size={12} />
-              Prize Pool
-            </div>
-            <div className="text-2xl font-black text-primary md:text-3xl">NGN {totalPrize.toLocaleString()}</div>
-          </div>
-
-          <div className="space-y-2">
-            {prizes.slice(0, 5).map((prize, index) => (
-              <div
-                key={prize.rank}
-                className={`flex items-center justify-between rounded-lg border px-2.5 py-2 ${
-                  index === 0
-                    ? 'border-primary/40 bg-primary/10'
-                    : 'border-zinc-800 bg-zinc-950/80'
-                }`}
-              >
-                <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-widest text-zinc-400">
-                  {index + 1}. {prize.rank.replace(' PLACE', '')}
-                </span>
-                <span className={`shrink-0 text-xs font-black ${index === 0 ? 'text-primary' : 'text-zinc-200'}`}>
-                  NGN {prize.prize.toLocaleString()}
-                </span>
+      <div className="grid grid-cols-1 md:grid-cols-[0.82fr_1.18fr] gap-4">
+        {isCompleted ? (
+          <>
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 flex flex-col items-center justify-center text-center relative overflow-hidden h-full min-h-[160px]">
+                <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-black">
+                  <Trophy size={24} className="animate-bounce" />
+                </div>
+                <div className="text-[9px] font-black uppercase tracking-widest text-primary">Tournament Champion</div>
+                <div className="mt-1 text-base font-black text-white uppercase tracking-wider truncate max-w-full">
+                  {winners?.find((w) => w.rank === 1)?.username || 'TBD'}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+
+            <div>
+              <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-1">
+                Final Standings (1st - 5th)
+              </div>
+              <div className="space-y-2">
+                {winners && winners.length > 0 ? (
+                  winners.slice(0, 5).map((winner, index) => (
+                    <div
+                      key={winner.rank}
+                      className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 ${
+                        index === 0
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-zinc-800 bg-zinc-950/80'
+                      }`}
+                    >
+                      <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-widest text-zinc-400">
+                        {index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : index === 2 ? '🥉 3rd' : index === 3 ? '🏅 4th' : `🏅 ${index + 1}th`}. {winner.username}
+                      </span>
+                      <span className={`shrink-0 text-[10px] font-black uppercase tracking-wider ${index === 0 ? 'text-primary' : 'text-zinc-400'}`}>
+                        {index === 0 ? 'Champion' : `Rank ${winner.rank}`}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-zinc-500 py-4 text-center font-bold">No standings recorded</div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                  <Clock size={12} />
+                  Countdown
+                </div>
+                <div className="text-2xl font-black text-primary">{startsIn}</div>
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                  <Users size={12} />
+                  Players
+                </div>
+                <div className="text-lg font-black text-white">{joinedUsers}/{maxParticipants}</div>
+                <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">{spotsLeft} slots left</div>
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                  <Coins size={12} />
+                  Entry
+                </div>
+                <div className="text-lg font-black text-white">NGN {entryFee.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary">
+                  <Trophy size={12} />
+                  Prize Pool
+                </div>
+                <div className="text-2xl font-black text-primary md:text-3xl">NGN {totalPrize.toLocaleString()}</div>
+              </div>
+
+              <div className="space-y-2">
+                {prizes.slice(0, 5).map((prize, index) => (
+                  <div
+                    key={prize.rank}
+                    className={`flex items-center justify-between rounded-lg border px-2.5 py-2 ${
+                      index === 0
+                        ? 'border-primary/40 bg-primary/10'
+                        : 'border-zinc-800 bg-zinc-950/80'
+                    }`}
+                  >
+                    <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-widest text-zinc-400">
+                      {index + 1}. {prize.rank.replace(' PLACE', '')}
+                    </span>
+                    <span className={`shrink-0 text-xs font-black ${index === 0 ? 'text-primary' : 'text-zinc-200'}`}>
+                      NGN {prize.prize.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <button
         onClick={onEnter}
-        className="mt-5 w-full rounded-xl bg-primary px-6 py-4 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01]"
+        className={`mt-5 w-full rounded-xl px-6 py-4 text-sm font-black uppercase tracking-widest transition-transform hover:scale-[1.01] ${
+          isCompleted
+            ? 'border-2 border-primary/30 bg-transparent text-primary hover:bg-primary/5'
+            : 'bg-primary text-black'
+        }`}
       >
-        Join Tournament
+        {isCompleted ? 'View Bracket Tree' : 'Join Tournament'}
       </button>
     </section>
   );

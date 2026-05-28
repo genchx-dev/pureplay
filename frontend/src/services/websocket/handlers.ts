@@ -2,8 +2,8 @@ import { WSEvent } from './events';
 import { useGameStore } from '../../store/game.store';
 import type { MatchEvent } from '../../types/game.types';
 
-const getSecondsLeft = (turnEndsAt?: string, gameType: 'tictactoe' | 'chess' = 'tictactoe') => {
-  if (!turnEndsAt) return gameType === 'chess' ? 20 : 10;
+const getSecondsLeft = (turnEndsAt?: string, gameType: 'tictactoe' | 'chess' | 'whot' = 'tictactoe') => {
+  if (!turnEndsAt) return gameType === 'chess' ? 20 : (gameType === 'whot' ? 15 : 10);
   return Math.max(0, Math.ceil((new Date(turnEndsAt).getTime() - Date.now()) / 1000));
 };
 
@@ -44,6 +44,10 @@ export const handleWSMessage = (event: MessageEvent) => {
         if (data.customStyles) gameStore.setCustomStyles(data.customStyles);
         if (data.legalMoves) gameStore.setLegalMoves(data.legalMoves);
         if (data.fen !== undefined) gameStore.setFen(data.fen);
+        if (data.isTournament !== undefined) gameStore.setIsTournament(data.isTournament);
+        if (data.tournamentId !== undefined) gameStore.setTournamentId(data.tournamentId);
+        if (data.tournamentRoundNumber !== undefined) gameStore.setTournamentRoundNumber(data.tournamentRoundNumber);
+        if (data.isTournamentFinal !== undefined) gameStore.setIsTournamentFinal(data.isTournamentFinal || false);
         gameStore.setRoundWinner(null);
         gameStore.setTimeLeft(getSecondsLeft(data.turnEndsAt, gameType));
         break;

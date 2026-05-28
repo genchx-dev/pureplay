@@ -1,7 +1,7 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../../../store/game.store';
-import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins } from 'lucide-react';
+import { X, User, Circle, Trophy, Wifi, WifiOff, RotateCcw, Swords, Coins, Eye } from 'lucide-react';
 import { useGameSocket } from '../../../hooks/useGameSocket';
 import { useTicTacToeDemo } from '../../../hooks/useTicTacToeDemo';
 import { useChessDemo } from '../../../hooks/useChessDemo';
@@ -10,6 +10,7 @@ import { useWalletStore } from '../../../store/wallet.store';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRankingStore } from '../../../store/ranking.store';
 import { ChessBoard } from '../../../components/game/ChessBoard';
+import { WhotBoard } from '../../../components/game/WhotBoard';
 
 const OPPONENTS = ['QuantumKing', 'ShadowMaster', 'ProGamerX', 'NightOwl', 'CryptoChamp', 'BlitzKing', 'TacticsGod', 'Dominator99', 'FlashPoint', 'XcelPlayer'];
 const getRandomOpponent = (excludeUsername?: string) => {
@@ -94,6 +95,10 @@ export const GamePage = () => {
     setBoard,
     currentRound,
     gameType,
+    isTournament,
+    tournamentId,
+    tournamentRoundNumber,
+    isTournamentFinal,
   } = useGameStore();
 
   // Demo round tracking state
@@ -119,14 +124,8 @@ export const GamePage = () => {
     ? demoIsGameOver
     : series?.is_complete || false;
 
-  const isMyTurn = status === 'playing' && (!playerSymbol || currentPlayer === playerSymbol);
-  const winningLine = gameType === 'chess' ? null : getWinningLine(Array.isArray(board) ? board : []);
-
-  const handleMove = (index: number) => {
-    if (gameType !== 'chess' && Array.isArray(board) && board[index] === null && isMyTurn) {
-      sendMove(index);
-    }
-  };
+  const isSpectator = !isDemoMode && !playerSymbol;
+  const isMyTurn = status === 'playing' && !isSpectator && (!playerSymbol || currentPlayer === playerSymbol);
 
   const didWin = winner && winner !== 'draw' && playerSymbol === winner;
 
@@ -187,6 +186,21 @@ export const GamePage = () => {
     }
   }, [storeMatchId, matchId, isDemoMode, navigate]);
 
+  // Auto-redirect after match completion (exits the game room after 3 seconds)
+  useEffect(() => {
+    const isCompleted = isSeriesComplete || (!series && (status === 'finished' || status === 'draw'));
+    if (!isDemoMode && isCompleted) {
+      const timer = setTimeout(() => {
+        if (isTournament && tournamentId) {
+          navigate(`/?tab=tournament&openBracket=${tournamentId}`);
+        } else {
+          navigate('/');
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDemoMode, isSeriesComplete, series, status, isTournament, tournamentId, navigate]);
+
   const handleDemoReset = () => {
     reconnect();
     setDemoRound(1);
@@ -198,13 +212,13 @@ export const GamePage = () => {
     // If it's a series, only update ranking/balance when the WHOLE series is finished
     const shouldReport = isSeriesComplete || (!series && (status === 'finished' || status === 'draw'));
 
-    if (!isDemoMode && shouldReport) {
+    if (!isDemoMode && shouldReport && !isSpectator) {
       fetchBalance();
       fetchTransactions();
       
       if (user?.username) {
         const result = winner === 'draw' ? 'DRAW' : didWin ? 'WIN' : 'LOSS';
-        const matchStake = payout ? ((payout.winnerAmount || 0) + (payout.platformFee || 0)) / 2 : 500;
+        const matchStake = isTournament ? 0 : (payout ? ((payout.winnerAmount || 0) + (payout.platformFee || 0)) / 2 : 500);
         const opponentName = getRandomOpponent(user.username);
         
         addMatchResult(user.username, 'Tic Tac Toe', opponentName, result, matchStake);
@@ -212,7 +226,7 @@ export const GamePage = () => {
       
       checkAuth();
     }
-  }, [fetchBalance, fetchTransactions, checkAuth, isDemoMode, status, user?.username, winner, didWin, payout, addMatchResult, isSeriesComplete, series]);
+  }, [fetchBalance, fetchTransactions, checkAuth, isDemoMode, status, user?.username, winner, didWin, payout, addMatchResult, isSeriesComplete, series, isSpectator, isTournament]);
 
   const statusLabel =
     status === 'playing'
@@ -230,20 +244,40 @@ export const GamePage = () => {
 
   const amountWon = payout?.winnerAmount || estWinPot;
   const didDemoWin = demoIsGameOver ? demoFinalWinner === playerSymbol : didWin;
-  const resultTitle =
-    winner === 'draw'
+  const winnerUsername = 
+    winner === 'X' 
+      ? (player1Username || 'Player 1') 
+      : winner === 'O' 
+        ? (player2Username || 'Player 2') 
+        : null;
+
+  const resultTitle = isSpectator
+    ? winner === 'draw'
+      ? 'Draw Match'
+      : `${winnerUsername} Wins!`
+    : winner === 'draw'
       ? 'Draw Match'
       : (isDemoMode ? didDemoWin : didWin)
       ? (isDemoMode
           ? (demoIsGameOver ? 'You Won' : 'Round Won')
-          : (series && !isSeriesComplete ? 'Round Won' : `Won ${formatMoney(amountWon)}`))
+          : (series && !isSeriesComplete 
+              ? 'Round Won' 
+              : isTournament 
+                ? isTournamentFinal
+                  ? 'You are the Champion!'
+                  : 'Match Won'
+                : `Won ${formatMoney(amountWon)}`))
       : (isDemoMode
           ? (demoIsGameOver ? 'You Lose' : 'Round Lost')
           : (series && !isSeriesComplete ? 'Round Lost' : 'You Lose'));
 
   const nextRoundNum = (isDemoMode ? demoRound : currentRound) + 1;
 
-  const resultDescription = isDemoMode
+  const resultDescription = isSpectator
+    ? isTournament
+      ? 'The match has concluded. You can return to the tournament bracket.'
+      : 'The match has concluded.'
+    : isDemoMode
     ? winner === 'draw'
       ? `Both players held the board. Round ${nextRoundNum} starting shortly...`
       : didWin
@@ -254,10 +288,26 @@ export const GamePage = () => {
     : didWin
     ? (series && !isSeriesComplete
         ? `You won this round! Round ${nextRoundNum} starting shortly...`
-        : 'Clean finish. Your wallet will update with the match payout.')
+        : isTournament
+          ? isTournamentFinal
+            ? 'Incredible tournament! You won the championship.'
+            : 'Clean finish! You have advanced to the next round.'
+          : 'Clean finish. Your wallet will update with the match payout.')
     : (series && !isSeriesComplete
         ? `${winner || 'Opponent'} wins this round. Round ${nextRoundNum} starting shortly...`
-        : `${winner || 'Opponent'} wins this round.`);
+        : isTournament
+          ? isTournamentFinal
+            ? 'Runner up! Opponent won the championship.'
+            : `${winner || 'Opponent'} wins the match. You are eliminated from the tournament.`
+          : `${winner || 'Opponent'} wins this round.`);
+
+  const winningLine = gameType === 'chess' ? null : getWinningLine(Array.isArray(board) ? board : []);
+
+  const handleMove = (index: number) => {
+    if (gameType !== 'chess' && Array.isArray(board) && board[index] === null && isMyTurn) {
+      sendMove(index);
+    }
+  };
 
   const getCellClasses = (idx: number, cell: string | null) => {
     const isWinner = winningLine?.includes(idx);
@@ -279,7 +329,7 @@ export const GamePage = () => {
 
         <header className="flex justify-between items-center mb-8 pt-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(isTournament ? '/?tab=tournament' : '/')}
             className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
           >
             <X className="text-zinc-500" />
@@ -336,23 +386,51 @@ export const GamePage = () => {
           </div>
         )}
 
-        {/* Match Pot Badge */}
-        <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-zinc-800/80 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <Coins className="text-primary animate-pulse" size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Match Stake</span>
+        {/* Tournament or Match Pot Badge */}
+        {isSpectator ? (
+          <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-primary/20 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Eye className="text-primary animate-pulse" size={16} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Spectator Mode</span>
+            </div>
+            <div className="font-mono text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+              {isTournament 
+                ? isTournamentFinal 
+                  ? 'Tournament Finals' 
+                  : tournamentRoundNumber 
+                    ? `Tournament R${tournamentRoundNumber}` 
+                    : 'Tournament Match' 
+                : 'Staked Match'}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 font-mono">
-            {isDemoMode ? (
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Practice Match (Free)</span>
-            ) : (
-              <>
-                <span className="text-[10px] font-bold text-zinc-500 mr-2 uppercase">Est. Payout: NGN {estWinPot.toLocaleString()}</span>
-                <span className="text-sm font-black text-primary">NGN {totalPot.toLocaleString()}</span>
-              </>
-            )}
+        ) : isTournament ? (
+          <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-primary/20 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Trophy className="text-primary" size={16} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Tournament Match</span>
+            </div>
+            <div className="font-mono text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+              {isTournamentFinal ? 'Finals' : tournamentRoundNumber ? `Round ${tournamentRoundNumber}` : 'Knockout Stage'}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-6 bg-gradient-to-r from-zinc-950 via-zinc-900/60 to-zinc-950 border border-zinc-800/80 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-lg shadow-black/30 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Coins className="text-primary animate-pulse" size={16} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Match Stake</span>
+            </div>
+            <div className="flex items-center gap-1.5 font-mono">
+              {isDemoMode ? (
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Practice Match (Free)</span>
+              ) : (
+                <>
+                  <span className="text-[10px] font-bold text-zinc-500 mr-2 uppercase">Est. Payout: NGN {estWinPot.toLocaleString()}</span>
+                  <span className="text-sm font-black text-primary">NGN {totalPot.toLocaleString()}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-bold text-red-300">
@@ -375,7 +453,7 @@ export const GamePage = () => {
               {resultTitle}
             </h2>
             <p className="mt-2 text-sm font-medium leading-6 text-zinc-300">{resultDescription}</p>
-            {payout && (
+            {payout && !isTournament && (
               <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-primary/20 bg-black/30 p-3">
                 <div>
                   <div className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Winner Payout</div>
@@ -387,21 +465,33 @@ export const GamePage = () => {
                 </div>
               </div>
             )}
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                onClick={isDemoMode ? handleDemoReset : () => navigate('/matchmaking')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-black"
-              >
-                <Swords size={15} />
-                {isDemoMode ? 'Play Again' : 'Rematch'}
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-xs font-black uppercase tracking-widest text-zinc-300"
-              >
-                <RotateCcw size={15} />
-                Home
-              </button>
+            <div className="mt-4 flex flex-col gap-2 w-full">
+              {isTournament ? (
+                <button
+                  onClick={() => navigate('/?tab=tournament')}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <Trophy size={15} />
+                  Tournament Bracket
+                </button>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  <button
+                    onClick={isDemoMode ? handleDemoReset : () => navigate('/matchmaking')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-black"
+                  >
+                    <Swords size={15} />
+                    {isDemoMode ? 'Play Again' : 'Rematch'}
+                  </button>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-xs font-black uppercase tracking-widest text-zinc-300"
+                  >
+                    <RotateCcw size={15} />
+                    Home
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -478,6 +568,18 @@ export const GamePage = () => {
               sendMove={sendMove as (move: string) => void}
             />
           </div>
+        ) : gameType === 'whot' ? (
+          <div className="mb-10 w-full">
+            <WhotBoard
+              board={board}
+              playerSymbol={playerSymbol}
+              currentPlayer={currentPlayer}
+              status={status}
+              sendMove={sendMove}
+              player1Username={player1Username}
+              player2Username={player2Username}
+            />
+          </div>
         ) : (
           <div
             className="p-6 rounded-[2.5rem] border border-zinc-800/80 shadow-2xl mb-10 bg-cover bg-center"
@@ -529,9 +631,13 @@ export const GamePage = () => {
 
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
-            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">You</div>
+            <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+              {isSpectator ? 'Spectating' : 'You'}
+            </div>
             <div className="text-sm font-black text-primary">
-              {gameType === 'chess' 
+              {isSpectator ? (
+                <span className="text-zinc-500">-</span>
+              ) : gameType === 'chess' 
                 ? (playerSymbol === 'X' ? 'White ♔' : playerSymbol === 'O' ? 'Black ♚' : '-')
                 : (playerSymbol || '-')}
             </div>
@@ -546,10 +652,10 @@ export const GamePage = () => {
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
-              {gameType === 'chess' ? 'Format' : 'Round'}
+              {(gameType === 'chess' || gameType === 'whot') ? 'Format' : 'Round'}
             </div>
             <div className="text-sm font-black text-primary uppercase mt-0.5">
-              {gameType === 'chess' ? 'Single' : (isDemoMode ? demoRound : currentRound)}
+              {(gameType === 'chess' || gameType === 'whot') ? 'Single' : (isDemoMode ? demoRound : currentRound)}
             </div>
           </div>
         </div>

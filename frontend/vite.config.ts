@@ -10,4 +10,10 @@ export default defineConfig({
       plugins: [tailwindcss()],
     },
   },
+  resolve: {
+    alias: {
+      // Polyfill Node.js 'events' module for browser (required by the 'whot' package)
+      events: 'events',
+    },
+  },
 })

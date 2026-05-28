@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   Swords, 
   Trophy, 
   TrendingUp, 
-  User
+  User,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -44,12 +45,22 @@ const startsInLabel = (startTime?: string) => {
   return `${hours}h ${minutes}m`;
 };
 
-const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: boolean; onTournamentClick: () => void }) => {
+const HomeContent = ({ 
+  isAuthenticated, 
+  onTournamentClick 
+}: { 
+  isAuthenticated: boolean; 
+  onTournamentClick: (tournamentId?: string) => void;
+}) => {
   const { tournaments } = useTournaments(isAuthenticated);
-  const featuredTournament = tournaments.find((tournament) =>
+  let featuredTournament = tournaments.find((tournament) =>
     ['registration_open', 'active', 'live', 'upcoming'].includes(tournament.status),
   );
+  if (!featuredTournament) {
+    featuredTournament = tournaments.find((tournament) => tournament.status === 'completed');
+  }
   const fallbackTournament = {
+    id: '',
     name: 'Ultimate Tic Tac Toe Cup',
     description: 'Enter the headline weekend bracket, climb the table, and fight for a live top-5 prize pool.',
     startTime: undefined,
@@ -57,6 +68,8 @@ const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: 
     participants: 128,
     maxParticipants: 256,
     prizePool: 50000,
+    status: 'upcoming' as const,
+    winners: [] as { rank: number; username: string }[],
   };
   const tournament = featuredTournament || fallbackTournament;
   const prizes = prizeBreakdown(tournament.prizePool);
@@ -74,7 +87,9 @@ const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: 
           totalPrize={tournament.prizePool}
           prizes={prizes}
           gameImage={ticTacToeGame.image}
-          onEnter={onTournamentClick}
+          onEnter={() => onTournamentClick(tournament.id)}
+          status={tournament.status}
+          winners={tournament.winners}
         />
       </div>
 
@@ -94,13 +109,14 @@ const HomeContent = ({ isAuthenticated, onTournamentClick }: { isAuthenticated: 
 };
 
 export const HomePage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get('tab');
     return tab === 'chess' ? 'me' : (tab && ['home', 'challenge', 'tournament', 'leaderboard', 'me'].includes(tab) ? tab : 'home');
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { balance = 0 } = useWallet(isAuthenticated);
   
   const incomingChallenges = useChallengeStore((state) => state.incomingChallenges);
@@ -123,14 +139,34 @@ export const HomePage = () => {
     { id: 'me', icon: User, label: 'Me' },
   ];
 
+  if (user?.is_staff) {
+    navItems.push({ id: 'admin', icon: Shield, label: 'Admin' });
+  }
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === 'admin') {
+      navigate('/admin');
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
+  const handleTournamentClick = (tournamentId?: string) => {
+    if (tournamentId) {
+      setSearchParams({ tab: 'tournament', openBracket: tournamentId });
+    } else {
+      setSearchParams({ tab: 'tournament' });
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
+      case 'home': return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={handleTournamentClick} />;
       case 'challenge': return <ChallengePage />;
       case 'tournament': return <TournamentPage />;
       case 'leaderboard': return <LeaderboardPage onChallenge={() => setActiveTab('challenge')} />;
       case 'me': return <MePage />;
-      default: return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={() => setActiveTab('tournament')} />;
+      default: return <HomeContent isAuthenticated={isAuthenticated} onTournamentClick={handleTournamentClick} />;
     }
   };
 
@@ -139,7 +175,7 @@ export const HomePage = () => {
       <Sidebar 
         navItems={navItems}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         isAuthenticated={isAuthenticated}
@@ -148,7 +184,7 @@ export const HomePage = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen relative bg-black">
-        <Header isAuthenticated={isAuthenticated} balance={balance} onLogoClick={() => setActiveTab('home')} />
+        <Header isAuthenticated={isAuthenticated} balance={balance} onLogoClick={() => handleTabChange('home')} />
 
         {/* Dynamic Content */}
         <main className="flex-1 overflow-y-auto w-full scrollbar-hide pb-24 md:pb-6">
@@ -163,7 +199,7 @@ export const HomePage = () => {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 className={`flex flex-col items-center gap-1 transition-all ${activeTab === item.id ? 'text-primary' : 'text-zinc-500'}`}
               >
                 <div className="relative">

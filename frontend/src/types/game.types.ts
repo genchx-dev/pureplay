@@ -1,5 +1,5 @@
 export type PlayerSymbol = 'X' | 'O';
-export type BoardState = (PlayerSymbol | null)[] | Record<string, string>;
+export type BoardState = (PlayerSymbol | null)[] | Record<string, string> | any;
 export type GameStatus = 'waiting' | 'connecting' | 'playing' | 'finished' | 'draw' | 'error';
 
 export interface SeriesInfo {
@@ -19,7 +19,7 @@ export interface GameState {
   timeLeft: number;
   error: string | null;
   series: SeriesInfo | null;
-  gameType?: 'tictactoe' | 'chess';
+  gameType?: 'tictactoe' | 'chess' | 'whot';
   boardTheme?: string;
   customStyles?: Record<string, any>;
   legalMoves?: string[];
@@ -29,7 +29,7 @@ export interface GameState {
 export interface MatchMove {
   type: 'MAKE_MOVE';
   payload: {
-    position: number | string;
+    position: number | string | any;
   };
 }
 
@@ -53,9 +53,13 @@ export interface MatchEvent {
     winnerAmount?: number;
     platformFee?: number;
   };
-  gameType?: 'tictactoe' | 'chess';
+  gameType?: 'tictactoe' | 'chess' | 'whot';
   boardTheme?: string;
   customStyles?: Record<string, any>;
   legalMoves?: string[];
   fen?: string;
+  isTournament?: boolean;
+  tournamentId?: string | null;
+  tournamentRoundNumber?: number | null;
+  isTournamentFinal?: boolean;
 }

@@ -100,15 +100,13 @@ class MatchConsumer(AsyncWebsocketConsumer):
 
         await self.schedule_turn_timeout()
 
-    # =========================
-    # GAME OVER HANDLER
-    # =========================
-
     async def handle_game_over(self, match, series_info=None):
         winner_symbol = match.game_state.get('winner')
         game_type = match.game_state.get('gameType', 'tictactoe')
         if game_type == 'chess':
             reason = 'checkmate' if winner_symbol != 'draw' else 'draw'
+        elif game_type == 'whot':
+            reason = 'hand_cleared' if winner_symbol != 'draw' else 'draw'
         else:
             reason = 'board_full' if winner_symbol == 'draw' else 'three_in_row'
 
@@ -201,6 +199,8 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'customStyles': state.get('customStyles', {}),
             'legalMoves': state.get('legalMoves', []),
             'fen': state.get('fen'),
+            'isTournament': state.get('isTournament', False),
+            'tournamentId': state.get('tournamentId'),
         })
 
     # =========================
@@ -232,7 +232,28 @@ class MatchConsumer(AsyncWebsocketConsumer):
             'customStyles': state.get('customStyles', {}),
             'legalMoves': state.get('legalMoves', []),
             'fen': state.get('fen'),
+            'isTournament': state.get('isTournament', False),
+            'tournamentId': state.get('tournamentId'),
+            'tournamentRoundNumber': state.get('tournamentRoundNumber'),
+            'isTournamentFinal': state.get('isTournamentFinal', False),
         })
+
+        if match.status == 'completed':
+            await self.send_json({
+                'type': 'GAME_OVER',
+                'winner': state.get('winner'),
+                'reason': 'finished',
+                'board': state.get('board'),
+                'series': series_info,
+                'gameType': state.get('gameType', 'tictactoe'),
+                'boardTheme': state.get('boardTheme', 'lichess'),
+                'customStyles': state.get('customStyles', {}),
+                'fen': state.get('fen'),
+            })
+            return
+
+        from .services import trigger_bot_move_async
+        await database_sync_to_async(trigger_bot_move_async)(match)
 
     # =========================
     # TURN TIMEOUT

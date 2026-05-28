@@ -16,6 +16,7 @@ export interface User {
   phone?: string;
   xp?: number;
   mmr?: number;
+  is_staff?: boolean;
   chess_customizations?: ChessCustomizations;
 }
 

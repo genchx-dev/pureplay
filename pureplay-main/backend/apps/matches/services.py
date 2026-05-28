@@ -156,6 +156,8 @@ def create_series(player1_id, player2_id, game_type='tictactoe', stake=0, board_
             game_number=1
         )
 
+        trigger_bot_move_async(match)
+
     return series, match
 
 
@@ -235,6 +237,8 @@ def join_match(match_id, player2_id):
             }
         )
 
+        trigger_bot_move_async(match)
+
         return match
 
 
@@ -298,6 +302,33 @@ def make_move(match_id, player_id, move):
                         game_number=next_game_number,
                         board_theme=prev_theme
                     )
+                    
+                    # Propagate tournament flags if present in the previous match
+                    is_tournament = match.game_state.get('isTournament', False)
+                    tournament_id = match.game_state.get('tournamentId')
+                    tournament_round = match.game_state.get('tournamentRoundNumber')
+                    is_tournament_final = match.game_state.get('isTournamentFinal')
+                    if is_tournament:
+                        new_match.game_state['isTournament'] = is_tournament
+                        if tournament_id:
+                            new_match.game_state['tournamentId'] = tournament_id
+                        if tournament_round is not None:
+                            new_match.game_state['tournamentRoundNumber'] = tournament_round
+                        if is_tournament_final is not None:
+                            new_match.game_state['isTournamentFinal'] = is_tournament_final
+                        new_match.save(update_fields=['game_state'])
+                        
+                        try:
+                            from apps.tournaments.models import TournamentMatch
+                            from django.core.cache import cache
+                            tmatch = TournamentMatch.objects.filter(match_id=str(match.id)).first()
+                            if tmatch:
+                                tmatch.match_id = str(new_match.id)
+                                tmatch.save(update_fields=['match_id'])
+                                cache.delete(f'tournament_bracket_{tmatch.tournament.id}')
+                        except Exception as e:
+                            pass
+                        
                     join_match(new_match.id, match.player2.id)
                     
                     # Broadcast to OLD match room about the NEXT match
@@ -339,6 +370,23 @@ def make_move(match_id, player_id, move):
                         series.status = 'completed'
                         series.winner = series_winner
                         series.save()
+
+                        # Auto-report tournament series completion hook
+                        try:
+                            from apps.tournaments.models import TournamentMatch
+                            from apps.tournaments.services import TournamentService
+                            match_ids = [str(m.id) for m in series.matches.all()]
+                            tmatch = TournamentMatch.objects.filter(match_id__in=match_ids).first()
+                            if tmatch:
+                                winner_participant = tmatch.tournament.participants.get(user=series_winner)
+                                TournamentService.report_match_result(
+                                    tournament_match_id=tmatch.id,
+                                    winner_participant_id=winner_participant.id,
+                                    player1_score=series.player1_wins,
+                                    player2_score=series.player2_wins
+                                )
+                        except Exception as e:
+                            pass
                     else:
                         next_game_number = match.game_number + 1
                         prev_theme = match.game_state.get('boardTheme', 'random')
@@ -350,6 +398,33 @@ def make_move(match_id, player_id, move):
                             game_number=next_game_number,
                             board_theme=prev_theme
                         )
+                        
+                        # Propagate tournament flags if present in the previous match
+                        is_tournament = match.game_state.get('isTournament', False)
+                        tournament_id = match.game_state.get('tournamentId')
+                        tournament_round = match.game_state.get('tournamentRoundNumber')
+                        is_tournament_final = match.game_state.get('isTournamentFinal')
+                        if is_tournament:
+                            new_match.game_state['isTournament'] = is_tournament
+                            if tournament_id:
+                                new_match.game_state['tournamentId'] = tournament_id
+                            if tournament_round is not None:
+                                new_match.game_state['tournamentRoundNumber'] = tournament_round
+                            if is_tournament_final is not None:
+                                new_match.game_state['isTournamentFinal'] = is_tournament_final
+                            new_match.save(update_fields=['game_state'])
+                            
+                            try:
+                                from apps.tournaments.models import TournamentMatch
+                                from django.core.cache import cache
+                                tmatch = TournamentMatch.objects.filter(match_id=str(match.id)).first()
+                                if tmatch:
+                                    tmatch.match_id = str(new_match.id)
+                                    tmatch.save(update_fields=['match_id'])
+                                    cache.delete(f'tournament_bracket_{tmatch.tournament.id}')
+                            except Exception as e:
+                                pass
+                            
                         join_match(new_match.id, match.player2.id)
 
                         # Broadcast to OLD match room about the NEXT match
@@ -370,6 +445,24 @@ def make_move(match_id, player_id, move):
                             match_id=match.id
                         )
 
+                    # Auto-report tournament single match completion hook
+                    try:
+                        from apps.tournaments.models import TournamentMatch
+                        from apps.tournaments.services import TournamentService
+                        tmatch = TournamentMatch.objects.filter(match_id=str(match.id)).first()
+                        if tmatch:
+                            winner_participant = tmatch.tournament.participants.get(user=winner_user)
+                            p1_score = 1 if winner_user == tmatch.player1.user else 0
+                            p2_score = 1 if winner_user == tmatch.player2.user else 0
+                            TournamentService.report_match_result(
+                                tournament_match_id=tmatch.id,
+                                winner_participant_id=winner_participant.id,
+                                player1_score=p1_score,
+                                player2_score=p2_score
+                            )
+                    except Exception as e:
+                        pass
+
             match.status = 'completed'
             match.game_state = new_state
             match.save(update_fields=['winner_id', 'status', 'game_state', 'updated_at'])
@@ -387,6 +480,9 @@ def make_move(match_id, player_id, move):
 
         match.game_state = new_state
         match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
+        
+        trigger_bot_move_async(match)
+        
         return match, 'MOVE_MADE'
 
 
@@ -419,3 +515,158 @@ def skip_expired_turn(match_id):
         match.game_state = state
         match.save(update_fields=['current_turn', 'game_state', 'updated_at'])
         return match, current
+
+
+# =========================
+# BOT PLAY IMPLEMENTATION
+# =========================
+
+import threading
+import time
+import random
+
+_running_bot_matches = set()
+_running_bot_matches_lock = threading.Lock()
+
+def trigger_bot_move_async(match):
+    current_turn = match.current_turn
+    if not (current_turn and current_turn.username.startswith('bot_')):
+        return
+
+    match_id_str = str(match.id)
+    bot_id_str = str(current_turn.id)
+    with _running_bot_matches_lock:
+        if (match_id_str, bot_id_str) in _running_bot_matches:
+            return
+
+    from django.db import connection
+    if connection.in_atomic_block:
+        transaction.on_commit(lambda: threading.Thread(
+            target=bot_agent_thread,
+            args=(match_id_str, bot_id_str)
+        ).start())
+    else:
+        threading.Thread(
+            target=bot_agent_thread,
+            args=(match_id_str, bot_id_str)
+        ).start()
+
+def bot_agent_thread(match_id, bot_id):
+    from django.db import OperationalError
+    import random
+
+    match_id_str = str(match_id)
+    bot_id_str = str(bot_id)
+    with _running_bot_matches_lock:
+        if (match_id_str, bot_id_str) in _running_bot_matches:
+            return
+        _running_bot_matches.add((match_id_str, bot_id_str))
+
+    new_match = None
+    event_type = None
+
+    try:
+        # Randomized delay to stagger bot moves and prevent SQLite database lock contention
+        time.sleep(1.0 + random.uniform(0.2, 1.8))
+
+        Match = get_match_model()
+        
+        retries = 5
+        for attempt in range(retries):
+            try:
+                match = Match.objects.select_related('player1', 'player2', 'series').get(id=match_id)
+                if match.status != 'active' or str(match.current_turn_id) != bot_id:
+                    return
+
+                # Decide move
+                game_state = match.game_state
+                game_type = game_state.get('gameType', 'tictactoe')
+                chosen_move = None
+
+                bot_symbol = player_symbol(match, bot_id)
+                engine = get_engine(game_type)
+                if hasattr(engine, 'get_bot_move'):
+                    chosen_move = engine.get_bot_move(game_state, bot_symbol)
+                elif game_type == 'chess':
+                    legal_moves = game_state.get('legalMoves', [])
+                    if legal_moves:
+                        chosen_move = random.choice(legal_moves)
+                else:
+                    board = game_state.get('board', [])
+                    empty_cells = [i for i, cell in enumerate(board) if cell is None]
+                    if empty_cells:
+                        chosen_move = random.choice(empty_cells)
+
+                if chosen_move is None:
+                    return
+
+                new_match, event_type = make_move(match_id, bot_id, chosen_move)
+                break
+            except OperationalError as oe:
+                if "locked" in str(oe).lower() and attempt < retries - 1:
+                    # database locked, sleep and retry
+                    time.sleep(random.uniform(0.2, 0.6))
+                    continue
+                print(f"Bot database operational error: {oe}")
+                return
+            except Exception as e:
+                print(f"Bot make_move error for match {match_id}: {e}")
+                return
+    finally:
+        with _running_bot_matches_lock:
+            _running_bot_matches.discard((match_id_str, bot_id_str))
+
+    if not new_match:
+        return
+
+    # Broadcast update
+    channel_layer = get_channel_layer()
+    room_group_name = f"match_{match_id}"
+    
+    series_info = None
+    if new_match.series:
+        series_info = {
+            'id': str(new_match.series.id),
+            'player1_wins': new_match.series.player1_wins,
+            'player2_wins': new_match.series.player2_wins,
+            'is_complete': new_match.series.is_complete(),
+        }
+
+    if event_type == 'GAME_OVER':
+        winner_symbol = new_match.game_state.get('winner')
+        if game_type == 'chess':
+            reason = 'checkmate' if winner_symbol != 'draw' else 'draw'
+        elif game_type == 'whot':
+            reason = 'hand_cleared' if winner_symbol != 'draw' else 'draw'
+        else:
+            reason = 'board_full' if winner_symbol == 'draw' else 'three_in_row'
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                'type': 'game_over',
+                'winner': winner_symbol,
+                'reason': reason,
+                'board': new_match.game_state['board'],
+                'series': series_info,
+                'gameType': game_type,
+                'boardTheme': new_match.game_state.get('boardTheme', 'lichess'),
+                'customStyles': new_match.game_state.get('customStyles', {}),
+                'fen': new_match.game_state.get('fen'),
+            }
+        )
+    else:
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                'type': 'move_made',
+                'board': new_match.game_state['board'],
+                'nextPlayer': new_match.game_state['currentPlayer'],
+                'turnEndsAt': new_match.game_state['turnEndsAt'],
+                'series': series_info,
+                'gameType': game_type,
+                'boardTheme': new_match.game_state.get('boardTheme', 'lichess'),
+                'customStyles': new_match.game_state.get('customStyles', {}),
+                'legalMoves': new_match.game_state.get('legalMoves', []),
+                'fen': new_match.game_state.get('fen'),
+            }
+        )

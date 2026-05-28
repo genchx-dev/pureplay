@@ -13,7 +13,7 @@ from .services import TournamentService
 @permission_classes([permissions.IsAuthenticated])
 def list_tournaments(request):
     tournaments = TournamentService.list_active_tournaments()
-    serializer = TournamentSerializer(tournaments, many=True)
+    serializer = TournamentSerializer(tournaments, many=True, context={'request': request})
     return Response(serializer.data)
 
 
@@ -44,7 +44,7 @@ def create_tournament(request):
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = TournamentSerializer(tournament)
+    serializer = TournamentSerializer(tournament, context={'request': request})
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

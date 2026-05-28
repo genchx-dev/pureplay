@@ -1,6 +1,6 @@
 # PurePlay Project Progress
 
-Last updated: 2026-05-26
+Last updated: 2026-05-28
 
 This file tracks where the product currently stands across frontend, backend, docs, and integration. Update it whenever a feature moves from placeholder to integrated behavior.
 
@@ -8,12 +8,12 @@ This file tracks where the product currently stands across frontend, backend, do
 
 | Area | Status | Progress | Notes |
 | --- | --- | ---: | --- |
-| Local setup | Working | 90% | Frontend and backend install paths are documented. |
-| Frontend shell | Working | 70% | React/Vite app has dashboard, auth screens, lobby, and game route. |
-| Backend shell | Working | 70% | Django/DRF/Channels app runs with auth, matchmaking, wallet ledger, rankings/leaderboard, and Tic Tac Toe websocket. |
-| API contract | Working draft | 65% | Main frontend expectations are documented in `docs/api-contract.md`. |
-| Tests | Thin | 15% | Build/check pass, but backend currently has 0 tests and frontend has no app tests. |
-| Production readiness | Not ready | 20% | Local MVP only. Wallet, tournaments, persistence, and deployment hardening remain. |
+| Local setup | Working | 100% | Frontend, backend and bot tournament simulation running seamlessly. |
+| Frontend shell | Working | 92% | React/Vite app has dashboard, auth, lobby, settings, and expanded Admin control panel with custom charts. |
+| Backend shell | Working | 92% | Django/DRF/Daphne app runs with auth, matchmaking, wallet ledger, rankings, Whot! card engines, and expanded admin endpoints. |
+| API contract | Working draft | 90% | Main frontend expectations, Whot! card, and admin API schemas are documented/tested. |
+| Tests | Working | 50% | Full suite of admin API tests, engine unit tests, and local simulation tests. |
+| Production readiness | Not ready | 30% | Local MVP only. Redis queue, Postgres migrations, and Sentry tracking remain. |
 
 ## Frontend Progress
 
@@ -23,16 +23,20 @@ This file tracks where the product currently stands across frontend, backend, do
 | Session restore | Integrated | `GET /api/auth/profile/` | 70% |
 | Phone number capture | Integrated | None | 100% |
 | Dashboard navigation | Working | None | 75% |
-| Game catalog | Structured | Backend game support later | 45% |
+| Game catalog | Structured | Backend game support later | 55% |
 | Tic Tac Toe practice bot | Working locally | None | 70% |
+| Whot! Cards Multiplayer | Integrated | Match websocket & queue endpoints | 100% |
 | Quick Match lobby | Integrated | Matchmaking queue endpoints | 60% |
 | Challenge Player flow | Integrated (UI Flow & Modals) | Endpoint accept/decline logic | 90% |
 | Live Tic Tac Toe board | Integrated | Match websocket | 100% |
 | Wallet balance | Integrated | `GET /api/wallet/balance/` | 100% |
 | Deposit/withdraw | Integrated | Wallet ledger endpoints | 100% |
-| Tournament hero | Integrated | Featured tournament API | 90% |
-| Tournament page | Integrated (Brackets Modal) | Tournament list/join APIs | 90% |
+| Tournament hero | Integrated | Featured tournament API | 95% |
+| Tournament page | Integrated (Brackets Modal) | Tournament list/join APIs | 100% |
 | Leaderboard/profile history | Integrated | Ranking/history APIs | 100% |
+| Admin Dashboard Panel | Expanded | Overview, Games, Revenue, and Filters APIs | 100% |
+| Live Bracket Spectating | Integrated | Match websocket & brackets API | 100% |
+| Categorized Transactions Log | Integrated | Transactions list API | 100% |
 
 ## Backend Progress From Frontend View
 
@@ -44,15 +48,18 @@ This file tracks where the product currently stands across frontend, backend, do
 | Open match accept | Working MVP | Frontend can accept open challenges. |
 | Direct challenge | UI-ready (accept/decline modals) | Backend endpoints for invite/accept/decline lifecycle. |
 | Tic Tac Toe websocket | Working (Best of 3 & Reconnection Sync, Turn Latency Buffer) | Frontend receives match start, moves, turn skips, and game over. |
+| Whot! Cards websocket | Working (Single round, special rules, and bot players) | Frontend plays multiplayer Whot! cards against users and bots. |
 | Wallet | Working MVP | Full balance retrieval, transaction logging, deposits, and withdrawals. |
-| Tournaments | UI-ready (interactive brackets) | Backend endpoints for bracket pairs and payouts. |
+| Tournaments | Working MVP | Backend endpoints for bracket pairs, live matches, and prize payouts. |
 | Rankings/history | Working | Leaderboard, profile history and XP progression are dynamic. |
+| Admin panel endpoints | Working | Analytics, users lists, transaction logs, and tournament controls. |
 
 ## Game Catalog Status
 
 | Game | Engine Type | Frontend | Backend |
 | --- | --- | --- | --- |
 | Tic Tac Toe | Turn-based | Live MVP | Live MVP |
+| Whot! Cards | Turn-based | Live MVP | Live MVP |
 | Basketball | Physics | Asset visible, prototype needed | Planned |
 | Snooker | Physics | Asset visible, prototype needed | Planned |
 | Reversi | Turn-based | Asset visible, prototype needed | Planned |

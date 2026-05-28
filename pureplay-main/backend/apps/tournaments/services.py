@@ -3,7 +3,7 @@
 from decimal import Decimal
 import random
 import math
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 from django.core.cache import cache
 from apps.wallet.services import WalletService
@@ -33,11 +33,10 @@ class KnockoutService:
         total_players = len(participants)
         target_players, playin_count = KnockoutService.calculate_play_in_rounds(total_players)
 
-        # Create play‑in matches if needed
+        # 1. Create play-in matches if needed
         if playin_count > 0:
             playin_players = participants[:playin_count * 2]
             rest = participants[playin_count * 2:]
-            # Play‑in round (round_number = 0)
             for i in range(playin_count):
                 TournamentMatch.objects.create(
                     tournament=tournament,
@@ -51,30 +50,48 @@ class KnockoutService:
         else:
             rest = participants
 
-        # Now generate knockout rounds
-        round_number = 1
-        match_order = 0
-        # Rest are the winners of play‑in + players who got byes
-        # We need exactly target_players for round 1
-        # After play‑in, number of players = target_players (power of two)
-        current_round_players = rest
-        while len(current_round_players) > 1:
-            next_round_players = []
-            for i in range(0, len(current_round_players), 2):
-                match_order += 1
+        # 2. Create the main knockout bracket matches
+        # Round 1 has target_players // 2 matches in total
+        r1_match_count = target_players // 2
+        rest_count = len(rest)
+        
+        for i in range(1, r1_match_count + 1):
+            slot1_idx = 2 * (i - 1)
+            slot2_idx = 2 * (i - 1) + 1
+            
+            p1 = rest[slot1_idx] if slot1_idx < rest_count else None
+            p2 = rest[slot2_idx] if slot2_idx < rest_count else None
+            
+            TournamentMatch.objects.create(
+                tournament=tournament,
+                round_type='knockout',
+                round_number=1,
+                match_order=i,
+                player1=p1,
+                player2=p2,
+                status='pending'
+            )
+            
+        # Generate subsequent rounds (Round 2 to Final)
+        current_round_matches = r1_match_count
+        round_number = 2
+        while current_round_matches > 1:
+            next_round_matches = current_round_matches // 2
+            for i in range(1, next_round_matches + 1):
                 TournamentMatch.objects.create(
                     tournament=tournament,
                     round_type='knockout',
                     round_number=round_number,
-                    match_order=match_order,
-                    player1=current_round_players[i],
-                    player2=current_round_players[i+1] if i+1 < len(current_round_players) else None,
+                    match_order=i,
+                    player1=None,
+                    player2=None,
                     status='pending'
                 )
-                next_round_players.append(None)  # placeholder, winner will be set later
-            current_round_players = next_round_players
+            current_round_matches = next_round_matches
             round_number += 1
-            match_order = 0
+
+        # Check and start bot matches
+        KnockoutService.check_and_start_bot_matches(tournament)
 
     @staticmethod
     @transaction.atomic
@@ -87,10 +104,18 @@ class KnockoutService:
 
         # Find next match in knockout bracket
         next_round = tmatch.round_number + 1
-        # For play‑in (round 0), the winner goes to round 1, match_order = (tmatch.match_order + 1) // 2
         if tmatch.round_type == 'play_in':
-            next_match_order = (tmatch.match_order + 1) // 2
+            # For play-in (round 0), winner goes to round 1.
+            # We determine the exact match and player slot using the unified slot assignment:
+            total_players = TournamentParticipant.objects.filter(tournament=tmatch.tournament).count()
+            target_players, playin_count = KnockoutService.calculate_play_in_rounds(total_players)
+            rest_count = total_players - 2 * playin_count
+            
+            slot_idx = rest_count + tmatch.match_order - 1
+            next_match_order = (slot_idx // 2) + 1
+            is_player2 = (slot_idx % 2 == 1)
             next_round = 1
+            
             try:
                 next_match = TournamentMatch.objects.get(
                     tournament=tmatch.tournament,
@@ -101,6 +126,12 @@ class KnockoutService:
             except TournamentMatch.DoesNotExist:
                 # Should not happen
                 return
+                
+            if is_player2:
+                next_match.player2 = winner_participant
+            else:
+                next_match.player1 = winner_participant
+            next_match.save()
         else:
             next_match_order = (tmatch.match_order + 1) // 2
             try:
@@ -115,21 +146,27 @@ class KnockoutService:
                 KnockoutService.assign_ranks(tmatch.tournament, winner_participant)
                 return
 
-        if next_match.player1 is None:
-            next_match.player1 = winner_participant
-        elif next_match.player2 is None:
-            next_match.player2 = winner_participant
-        else:
-            # Should not happen
-            return
-        next_match.save()
+            if next_match.player1 is None:
+                next_match.player1 = winner_participant
+            elif next_match.player2 is None:
+                next_match.player2 = winner_participant
+            else:
+                # Should not happen
+                return
+            next_match.save()
+
+        # Check and start bot matches
+        KnockoutService.check_and_start_bot_matches(tmatch.tournament)
 
     @staticmethod
     def assign_ranks(tournament, champion_participant):
         """Assign final ranks to all participants based on elimination order."""
-        # This is simplified: we set rank=1 for champion, then for others we need elimination round
-        # We'll set rank based on the round they lost (higher round = better rank)
+        import math
         participants = TournamentParticipant.objects.filter(tournament=tournament)
+        total_players = participants.count()
+        target_players, playin_count = KnockoutService.calculate_play_in_rounds(total_players)
+        total_rounds = int(math.log2(target_players)) if target_players > 1 else 1
+        
         for p in participants:
             if p == champion_participant:
                 p.current_rank = 1
@@ -141,21 +178,38 @@ class KnockoutService:
                     status='completed'
                 ).exclude(winner=p).filter(models.Q(player1=p) | models.Q(player2=p)).first()
                 if lost_match:
-                    # Rank by round number (higher round = smaller rank number)
-                    p.current_rank = lost_match.round_number + 1 if lost_match.round_type != 'play_in' else 2
+                    if lost_match.round_type == 'play_in':
+                        p.current_rank = total_players
+                    else:
+                        p.current_rank = total_rounds - lost_match.round_number + 2
                 else:
-                    p.current_rank = len(participants)
+                    p.current_rank = total_players
             p.save()
         # Distribute prizes based on prize_distribution
         KnockoutService.distribute_prizes(tournament)
 
+        # Mark tournament as completed
+        tournament.status = 'completed'
+        tournament.completed_at = timezone.now()
+        tournament.save(update_fields=['status', 'completed_at'])
+
     @staticmethod
     def distribute_prizes(tournament):
-        """Payout using prize_distribution JSON."""
-        if not tournament.prize_distribution:
-            return
+        """Payout using prize_distribution JSON or fall back to default percentages from tournament system.md."""
         participants = TournamentParticipant.objects.filter(tournament=tournament).order_by('current_rank')
-        prize_map = tournament.prize_distribution
+        
+        if tournament.prize_distribution:
+            prize_map = tournament.prize_distribution
+        else:
+            pool = Decimal(str(tournament.prize_pool))
+            prize_map = {
+                "1": str(pool * Decimal("0.40")),
+                "2": str(pool * Decimal("0.25")),
+                "3": str(pool * Decimal("0.15")),
+                "4": str(pool * Decimal("0.12")),
+                "5": str(pool * Decimal("0.08")),
+            }
+
         for idx, participant in enumerate(participants, start=1):
             rank_str = str(idx)
             # Handle ranges like "5-6"
@@ -171,6 +225,46 @@ class KnockoutService:
                             break
             if prize and prize > 0:
                 WalletService.payout_win(participant.user, prize, str(tournament.id))
+
+    @staticmethod
+    def check_and_start_bot_matches(tournament):
+        from .models import TournamentMatch
+        
+        # 1. Start pending bot-only matches
+        pending_matches = TournamentMatch.objects.filter(
+            tournament=tournament,
+            status='pending',
+            player1__isnull=False,
+            player2__isnull=False
+        )
+        
+        for tmatch in pending_matches:
+            p1_username = tmatch.player1.user.username
+            p2_username = tmatch.player2.user.username
+            if p1_username.startswith('bot_') and p2_username.startswith('bot_'):
+                try:
+                    TournamentService.start_match(tmatch.id)
+                except Exception as e:
+                    print(f"Error auto-starting bot match {tmatch.id}: {e}")
+
+        # 2. Resume active bot-only matches that may have lost their threads
+        active_matches = TournamentMatch.objects.select_related('player1__user', 'player2__user').filter(
+            tournament=tournament,
+            status='active',
+            match_id__isnull=False
+        )
+        for tmatch in active_matches:
+            p1_username = tmatch.player1.user.username if tmatch.player1 else ''
+            p2_username = tmatch.player2.user.username if tmatch.player2 else ''
+            if p1_username.startswith('bot_') and p2_username.startswith('bot_'):
+                from apps.matches.models import Match
+                from apps.matches.services import trigger_bot_move_async
+                try:
+                    match = Match.objects.get(id=tmatch.match_id)
+                    if match.status == 'active':
+                        trigger_bot_move_async(match)
+                except Match.DoesNotExist:
+                    pass
 
 
 class SwissService:
@@ -296,7 +390,7 @@ class TournamentService:
 
     @staticmethod
     def list_active_tournaments():
-        return Tournament.objects.filter(status__in=['registering', 'in_progress'])
+        return Tournament.objects.filter(status__in=['registering', 'in_progress', 'completed'])
 
     @staticmethod
     @transaction.atomic
@@ -349,6 +443,12 @@ class TournamentService:
             return
         if tournament.current_players < 2:
             raise ValueError("Not enough players")
+
+        # Deduct locked entry fees since the tournament is starting
+        if tournament.entry_fee > 0:
+            for participant in tournament.participants.all():
+                WalletService.consume_entry_fee(participant.user, tournament.entry_fee, tournament.id)
+
         if tournament.tournament_type == 'knockout':
             KnockoutService.generate_bracket(tournament)
             tournament.status = 'in_progress'
@@ -369,10 +469,12 @@ class TournamentService:
 
     @staticmethod
     def get_bracket(tournament_id):
+        tournament = Tournament.objects.get(id=tournament_id)
+        KnockoutService.check_and_start_bot_matches(tournament)
+
         cache_key = f'tournament_bracket_{tournament_id}'
         bracket = cache.get(cache_key)
         if bracket is None:
-            tournament = Tournament.objects.get(id=tournament_id)
             matches = TournamentMatch.objects.filter(tournament=tournament).order_by('round_number', 'match_order')
             bracket = {
                 'tournament_id': str(tournament.id),
@@ -402,6 +504,7 @@ class TournamentService:
                     'player2_id': str(m.player2.user.id) if m.player2 else None,
                     'winner': m.winner.user.username if m.winner else None,
                     'status': m.status,
+                    'match_id': m.match_id,
                     'player1_score': m.player1_score,
                     'player2_score': m.player2_score,
                 })
@@ -414,20 +517,57 @@ class TournamentService:
     @transaction.atomic
     def start_match(tournament_match_id):
         tmatch = TournamentMatch.objects.select_related('tournament', 'player1__user', 'player2__user').get(id=tournament_match_id)
-        if tmatch.status != 'pending':
-            raise ValueError("Match already started")
+        if tmatch.status == 'active':
+            if tmatch.match_id:
+                from apps.matches.models import Match
+                try:
+                    match = Match.objects.get(id=tmatch.match_id)
+                    return match
+                except Match.DoesNotExist:
+                    pass
+        elif tmatch.status == 'completed':
+            raise ValueError("Match already completed")
+
         if not tmatch.player1 or not tmatch.player2:
             raise ValueError("Missing players")
-        # Create match using existing matchmaking
-        match = create_match(
-            player1_id=tmatch.player1.user.id,
-            game_type=tmatch.tournament.game_type,
-            stake=0
-        )
-        join_match(match.id, tmatch.player2.user.id)
+
+        from apps.matches.services import create_match, join_match, create_series
+
+        import math
+        total_rounds = int(math.log2(tmatch.tournament.max_players)) if tmatch.tournament.max_players > 1 else 1
+        is_final = (tmatch.round_number == total_rounds)
+
+        if tmatch.tournament.game_type == 'tictactoe':
+            series, match = create_series(
+                player1_id=tmatch.player1.user.id,
+                player2_id=tmatch.player2.user.id,
+                game_type='tictactoe',
+                stake=0
+            )
+            # Inject tournament flags
+            match.game_state['isTournament'] = True
+            match.game_state['tournamentId'] = str(tmatch.tournament.id)
+            match.game_state['tournamentRoundNumber'] = tmatch.round_number
+            match.game_state['isTournamentFinal'] = is_final
+            match.save(update_fields=['game_state'])
+        else:
+            match = create_match(
+                player1_id=tmatch.player1.user.id,
+                game_type=tmatch.tournament.game_type,
+                stake=0
+            )
+            # Inject tournament flags before player 2 joins
+            match.game_state['isTournament'] = True
+            match.game_state['tournamentId'] = str(tmatch.tournament.id)
+            match.game_state['tournamentRoundNumber'] = tmatch.round_number
+            match.game_state['isTournamentFinal'] = is_final
+            match.save(update_fields=['game_state'])
+            join_match(match.id, tmatch.player2.user.id)
+
         tmatch.match_id = str(match.id)
         tmatch.status = 'active'
         tmatch.save(update_fields=['match_id', 'status'])
+        cache.delete(f'tournament_bracket_{tmatch.tournament.id}')
         return match
 
     @staticmethod

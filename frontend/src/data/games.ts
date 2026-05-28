@@ -9,6 +9,7 @@ import snookerLogo from '../assets/games/snooker.svg';
 import targetLogo from '../assets/games/target.svg';
 import tictactoeLogo from '../assets/games/tic-tac-toe 2.svg';
 import wordHuntLogo from '../assets/games/word hunt.svg';
+import whotLogo from '../assets/games/whot.png';
 
 export type GameCatalogStatus = 'playable' | 'coming_soon';
 
@@ -35,6 +36,17 @@ export const gameCatalog: GameCatalogItem[] = [
     frontendStatus: 'live',
     backendStatus: 'live',
     turnTimerSeconds: 10,
+  },
+  {
+    id: 'whot',
+    label: 'Whot! Cards',
+    image: whotLogo,
+    status: 'playable',
+    route: '/matchmaking?gameType=whot',
+    engine: 'turn_based',
+    frontendStatus: 'live',
+    backendStatus: 'live',
+    turnTimerSeconds: 15,
   },
   {
     id: 'basketball',

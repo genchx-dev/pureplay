@@ -16,6 +16,7 @@ import {
   Terminal,
   ChevronDown,
   ChevronUp,
+  Shield,
 } from 'lucide-react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -257,6 +258,16 @@ export const MePage = () => {
           Withdraw
         </button>
       </div>
+
+      {user?.is_staff && (
+        <button
+          onClick={() => navigate('/admin')}
+          className="w-full bg-zinc-950 border border-primary/20 hover:border-primary/50 text-primary font-black uppercase tracking-wider py-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 hover:bg-primary/5"
+        >
+          <Shield size={14} strokeWidth={2.5} />
+          Access Admin Control Panel
+        </button>
+      )}
 
       {/* Stats Section */}
       <div>

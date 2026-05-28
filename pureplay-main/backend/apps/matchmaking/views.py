@@ -31,7 +31,7 @@ def parse_stake(value):
 def join_queue_view(request):
     game_type = request.data.get('gameType', 'tictactoe')
     mode = request.data.get('mode', 'quick_match')
-    if game_type not in ['tictactoe', 'chess'] or mode != 'quick_match':
+    if game_type not in ['tictactoe', 'chess', 'whot'] or mode != 'quick_match':
         return Response({'error': 'Unsupported matchmaking request'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -56,7 +56,7 @@ def cancel_queue_view(request):
 @permission_classes([permissions.IsAuthenticated])
 def open_matches_view(request):
     game_type = request.query_params.get('gameType', 'tictactoe')
-    if game_type not in ['tictactoe', 'chess']:
+    if game_type not in ['tictactoe', 'chess', 'whot']:
         return Response({'error': 'Unsupported game type'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -126,7 +126,7 @@ def challenge_player_view(request):
     board_theme = request.data.get('boardTheme', 'random')
     if not opponent_id:
         return Response({'error': 'opponentId is required'}, status=status.HTTP_400_BAD_REQUEST)
-    if game_type not in ['tictactoe', 'chess']:
+    if game_type not in ['tictactoe', 'chess', 'whot']:
         return Response({'error': 'Unsupported game type'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -145,7 +145,7 @@ def challenge_player_view(request):
         return Response({'error': 'You cannot challenge yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
     from apps.matches.services import create_series
-    if game_type == 'tictactoe' or (stake > 0 and game_type != 'chess'):
+    if (game_type == 'tictactoe' or (stake > 0 and game_type != 'chess')) and game_type != 'whot':
         series, match = create_series(request.user.id, opponent.id, game_type, stake, board_theme=board_theme)
     else:
         match = create_match(request.user.id, game_type=game_type, stake=stake, board_theme=board_theme)

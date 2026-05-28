@@ -37,6 +37,10 @@ class Tournament(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    # Scheduling
+    scheduled_start_time = models.DateTimeField(null=True, blank=True)   # when tournament auto-starts
+    registration_deadline = models.DateTimeField(null=True, blank=True)  # when registration closes
+
     # Swiss Hybrid specific
     swiss_rounds = models.IntegerField(default=0)                 # number of Swiss rounds
     qualification_slots = models.IntegerField(default=0)          # how many advance to knockout

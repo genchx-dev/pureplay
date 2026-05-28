@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.matchmaking',
     'apps.tournaments',
     'apps.rankings',   # <-- add this line
+    'apps.adminpanel',
 ]
 
 MIDDLEWARE = [

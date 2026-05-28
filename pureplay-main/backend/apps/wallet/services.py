@@ -94,6 +94,24 @@ class WalletService:
             description="Locked for stake"
         )
 
+    @staticmethod
+    @transaction.atomic
+    def consume_entry_fee(user, amount, tournament_id):
+        """Consume and permanently deduct the locked entry fee when a tournament starts."""
+        wallet = WalletService.get_wallet(user)
+        amount_decimal = Decimal(str(amount))
+
+        wallet.deduct_locked_funds(amount_decimal)
+
+        return Transaction.objects.create(
+            wallet=wallet,
+            amount=amount_decimal,
+            transaction_type='stake',
+            reference_id=str(tournament_id),
+            description=f"Entry fee for Tournament {tournament_id}",
+            status='completed'
+        )
+
     # =========================
     # WIN / LOSS / REFUND
     # =========================

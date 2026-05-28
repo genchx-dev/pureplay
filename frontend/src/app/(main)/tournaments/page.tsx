@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Clock, Trophy, Users, Zap, Lock, ChevronRight, Swords } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useWallet } from '../../../hooks/useWallet';
@@ -35,11 +36,24 @@ export const TournamentPage = () => {
   const { isAuthenticated, user } = useAuth();
   const { tournaments, loading, error, joinTournament } = useTournaments(isAuthenticated);
   const { balance = 0 } = useWallet(isAuthenticated);
+  const [searchParams] = useSearchParams();
+  const openBracketId = searchParams.get('openBracket');
 
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+
+  useEffect(() => {
+    if (openBracketId && tournaments.length > 0 && !hasAutoOpened) {
+      const match = tournaments.find((t) => t.id === openBracketId);
+      if (match) {
+        setSelectedTournament(match);
+        setHasAutoOpened(true);
+      }
+    }
+  }, [openBracketId, tournaments, hasAutoOpened]);
 
   const liveTournaments = tournaments.filter((tournament) =>
-    ['registration_open', 'active', 'live'].includes(tournament.status),
+    ['registration_open', 'active', 'live', 'completed'].includes(tournament.status),
   );
   const upcomingTournaments = tournaments.filter((tournament) => tournament.status === 'upcoming');
 
@@ -85,18 +99,29 @@ export const TournamentPage = () => {
             const isFull = tournament.participants >= tournament.maxParticipants;
             const hasBalance = balance >= tournament.entryFee;
             const canJoin = tournament.status === 'registration_open' && !isFull && !tournament.isJoined && hasBalance;
+            const isCompleted = tournament.status === 'completed';
+
+            const cardBorderClass = isCompleted 
+              ? 'border-primary/40 shadow-primary/5' 
+              : 'border-red-500/40 shadow-red-500/10';
+            const headerBgClass = isCompleted 
+              ? 'bg-primary/10 border-primary/20' 
+              : 'bg-red-500/10 border-red-500/20';
+            const headerTextClass = isCompleted 
+              ? 'text-primary' 
+              : 'text-red-400';
 
             return (
               <div
                 key={tournament.id}
-                className="rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-zinc-950 to-black shadow-xl shadow-red-500/10 overflow-hidden"
+                className={`rounded-3xl border-2 bg-gradient-to-br from-zinc-950 to-black shadow-xl overflow-hidden ${cardBorderClass}`}
               >
-                <div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/20 px-5 py-2">
-                  <div className="flex items-center gap-2 text-red-400 text-[10px] font-black uppercase tracking-widest">
-                    <Zap size={12} className="animate-pulse" />
+                <div className={`flex items-center justify-between border-b px-5 py-2 ${headerBgClass}`}>
+                  <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${headerTextClass}`}>
+                    {isCompleted ? <Trophy size={12} /> : <Zap size={12} className="animate-pulse" />}
                     {statusLabel[tournament.status] || tournament.status}
                   </div>
-                  <div className="flex items-center gap-1.5 text-red-400 text-[10px] font-bold">
+                  <div className={`flex items-center gap-1.5 text-[10px] font-bold ${headerTextClass}`}>
                     <Clock size={11} />
                     {formatDateTime(tournament.startTime)}
                   </div>
@@ -127,7 +152,7 @@ export const TournamentPage = () => {
                       <span>{fillPct}% full</span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${fillPct}%` }} />
+                      <div className={`h-full rounded-full transition-all ${isCompleted ? 'bg-primary' : 'bg-red-500'}`} style={{ width: `${fillPct}%` }} />
                     </div>
                   </div>
 
@@ -137,25 +162,76 @@ export const TournamentPage = () => {
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => joinTournament(tournament.id)}
-                      disabled={loading || !canJoin}
-                      className="w-full rounded-2xl bg-primary px-5 py-3.5 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-                    >
-                      {tournament.isJoined ? 'Already Joined' : isFull ? 'Tournament Full' : tournament.status === 'registration_open' ? 'Enter Tournament' : 'Registration Closed'}
-                    </button>
+                  {isCompleted ? (
+                    <div className="space-y-4">
+                      {/* Champion display */}
+                      {tournament.winners && tournament.winners.length > 0 && (
+                        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 flex items-center gap-4 relative overflow-hidden">
+                          <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-black">
+                            <Trophy size={24} className="animate-bounce" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[9px] font-black uppercase tracking-widest text-primary">Tournament Champion</div>
+                            <div className="text-base font-black text-white truncate uppercase tracking-wider">
+                              {tournament.winners.find((w) => w.rank === 1)?.username || 'TBD'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                    {(tournament.isJoined || tournament.status === 'active' || tournament.status === 'live' || tournament.status === 'completed') && (
+                      {/* Winners 1st to 5th place */}
+                      {tournament.winners && tournament.winners.length > 0 && (
+                        <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 pl-1 flex items-center gap-1.5">
+                            <Swords size={11} className="text-zinc-500" />
+                            Final Standings (1st - 5th)
+                          </div>
+                          <div className="space-y-2">
+                            {tournament.winners.slice(0, 5).map((winner) => (
+                              <div key={winner.rank} className="flex items-center justify-between py-1 border-b border-zinc-900/60 last:border-0">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase">
+                                  {winner.rank === 1 ? '🥇 1st Place' : winner.rank === 2 ? '🥈 2nd Place' : winner.rank === 3 ? '🥉 3rd Place' : winner.rank === 4 ? '🏅 4th Place' : `🏅 ${winner.rank}th Place`}
+                                </span>
+                                <span className={`text-xs font-black uppercase ${winner.rank === 1 ? 'text-primary' : 'text-zinc-200'}`}>
+                                  {winner.username}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bracket view button */}
                       <button
                         onClick={() => setSelectedTournament(tournament)}
-                        className="w-full rounded-2xl border-2 border-primary/30 px-5 py-3 text-sm font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-2"
+                        className="w-full rounded-2xl border-2 border-primary/30 px-5 py-3.5 text-sm font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-2"
                       >
                         <Swords size={14} />
-                        View Live Brackets
+                        View Bracket Tree
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => joinTournament(tournament.id)}
+                        disabled={loading || !canJoin}
+                        className="w-full rounded-2xl bg-primary px-5 py-3.5 text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                      >
+                        {tournament.isJoined ? 'Already Joined' : isFull ? 'Tournament Full' : tournament.status === 'registration_open' ? 'Enter Tournament' : 'Registration Closed'}
+                      </button>
+
+                      {(tournament.isJoined || tournament.status === 'active' || tournament.status === 'live') && (
+                        <button
+                          onClick={() => setSelectedTournament(tournament)}
+                          className="w-full rounded-2xl border-2 border-primary/30 px-5 py-3 text-sm font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          <Swords size={14} />
+                          View Live Brackets
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

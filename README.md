@@ -102,14 +102,16 @@ Current note: backend tests run successfully but there are currently `0` tests.
 - Quick Match lobby with open challenge listing and accept flow.
 - Challenge Player endpoint that immediately creates a match for MVP testing.
 - Tic Tac Toe websocket contract using `MATCH_START`, `MOVE_MADE`, `TURN_SKIP`, `GAME_OVER`, and `ERROR`.
+- Whot! Cards multiplayer engine supporting single-round matches, special card rules (Pick Two, Suspension, General Market, Whot wildcard), and backend bot player heuristics.
+- Real wallet stakes settlement: locks stakes at match start and net payouts (deducting 5% platform rake) to the winner on completion.
+- Admin Dashboard expansion: dedicated Games tab (active/completed matches, revenue, queueing players), dedicated Revenue tab (30-day SVG charting of daily timeseries earnings, deposit/withdrawal/stake ledger auditing), and Matches tab filters (game type, tournament type, and player search).
 - Global Leaderboard podium and user standings table mapped to the new 10-tier ranking system (Wood to Ruby).
 - Dynamic player progression metrics including XP accumulation, level progress bar with countdown, and win-streak tracking.
 - Match history tracking that automatically rewards XP and calculates win streaks upon match completion.
 
 ## Known Limits
 
-- Wallet money movement is still placeholder-level in the active backend.
-- Stakes are shown in matchmaking but are not settled through a real wallet ledger.
+- Wallet money movement is functional with real database-backed staking, deposits, and withdrawals.
 - Tournament join/payment and bracket tree visualization are UI-ready; backend endpoints are mocked locally until live tournament servers are up.
 - Challenge phone notifications are planned backend work (phone-number persistence is now supported).
 - Matchmaking uses local cache state, so it is suitable for local MVP testing, not production scale.

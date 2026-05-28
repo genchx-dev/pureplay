@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/matchmaking/', include('apps.matchmaking.urls')),
     path('api/tournaments/', include('apps.tournaments.urls')),
     path('api/rankings/', include('apps.rankings.urls')),
+    path('api/admin/', include('apps.adminpanel.urls')),
     path('api/auth/', include('apps.users.urls')),          # registration/login
     ]

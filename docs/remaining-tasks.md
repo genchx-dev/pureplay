@@ -8,26 +8,85 @@ This document tracks all outstanding work to bridge the current React frontend w
 
 ## 🔥 Backend Priority Order
 
-| Priority | Section | Task |
-|---|---|---|
-| 1 | Auth | Persist `phone_number` on register (Done) |
-| 2 | Rankings | XP & MMR fields + post-match calculation (Done) |
-| 3 | Rankings | `GET /api/rankings/leaderboard/` (Done) |
-| 4 | Rankings | `GET /api/players/search/?q=` |
-| 5 | Rankings | `GET /api/players/{username}/` |
-| 6 | Rankings | `GET /api/matches/history/` (Done) |
-| 7 | Wallet | Real wallet schema + staking engine (Done) |
-| 8 | Challenges | Challenge lifecycle API + SMS notifications (API Done, SMS Pending) |
-| 9 | Tournaments | Tournament schema + bracket logic (Done) |
-| 10 | Tic Tac Toe | Best of Three Rounds & Real Usernames (Done) |
-| 11 | Games | Game engine abstraction + new games (Abstraction Done, new games Pending) |
-| 12 | Hardening | Redis, PostgreSQL, production settings |
+| Priority | Section | Task | Status |
+|---|---|---|---|
+| 1 | Auth | Persist `phone_number` on register | Done |
+| 2 | Rankings | XP & MMR fields + post-match calculation | Done |
+| 3 | Rankings | `GET /api/rankings/leaderboard/` | Done |
+| 4 | Rankings | `GET /api/players/search/?q=` | Pending |
+| 5 | Rankings | `GET /api/players/{username}/` | Pending |
+| 6 | Rankings | `GET /api/matches/history/` | Done |
+| 7 | Wallet | Real wallet schema + staking engine | Done |
+| 8 | Challenges | Challenge lifecycle API + SMS notifications | API Done, SMS Pending |
+| 9 | Tournaments | Tournament schema + bracket logic | Done |
+| 10 | Tic Tac Toe | Best of Three Rounds & Real Usernames | Done |
+| 11 | Games | Game engine abstraction + Whot! Cards multiplayer | Done |
+| 12 | Admin | Dashboard statistics, chart data & logs APIs | Done |
+| 13 | Admin | Visual Bracket tree, polling, live spectating & filters | Done |
+| 14 | Hardening | Redis queue, PostgreSQL migration, production settings | Pending |
 
 ---
 
 ## 🔐 1. Authentication & Profile Persistence
 
 The registration form already sends `phone` from the frontend — the backend saves it.
+
+## 🏆 21. Completed Tournament State & Homepage Standings Integration
+
+We integrated full support for the completed tournament state on both backend and frontend, displaying a detailed gold-styled championship card and the top 5 final standings on the homepage.
+
+### Changes Made:
+
+#### Backend Enhancements:
+- **Tournament Completion State Transitions** ([services.py](file:///c:/Users/USER/pureplay/pureplay-main/backend/apps/tournaments/services.py)):
+  - Updated the `assign_ranks` method in `KnockoutService`. Once the final ranks are generated and prizes are distributed, the method now explicitly transitions the `Tournament`'s status to `completed` and sets `completed_at` to the current timestamp in the database.
+- **Top 5 Winners Serialization** ([serializers.py](file:///c:/Users/USER/pureplay/pureplay-main/backend/apps/tournaments/serializers.py)):
+  - Declared `winners` SerializerMethodField on both `TournamentSerializer` and `TournamentDetailSerializer`.
+  - Serializes the top 5 players (ranks 1 to 5) by ordering the tournament's participants by `current_rank` ascending. This returns names and ranks once the tournament transitions to the completed status.
+
+#### Frontend UI & Logic:
+- **Zustand Store Normalization** ([tournament.store.ts](file:///c:/Users/USER/pureplay/frontend/src/store/tournament.store.ts)):
+  - Updated `normalizeTournament` to map and persist the `winners` list from API payloads into the frontend Zustand state.
+  - Added type definition for `winners?: { rank: number; username: string }[];` in the [Tournament](file:///c:/Users/USER/pureplay/frontend/src/types/tournament.types.ts) interface.
+- **Championship Standings Card** ([page.tsx](file:///c:/Users/USER/pureplay/frontend/src/app/(main)/tournaments/page.tsx)):
+  - Included `completed` tournaments under the active list filter to display them in the main dashboard stream.
+  - Styled completed tournament cards with a premium gold theme (`border-primary/40` and gold Trophy header).
+  - Replaced the action buttons with an inline **Tournament Champion** card and a **Final Standings** table listing positions 1st through 5th with medals (🥇, 🥈, 🥉, 🏅).
+  - Provided a secondary "View Bracket Tree" button allowing users to review the completed bracket.
+- **Bracket Actions Hardening** ([TournamentBracketModal.tsx](file:///c:/Users/USER/pureplay/frontend/src/components/tournament/TournamentBracketModal.tsx)):
+  - Disabled the "Join Match", "Play Match", and "Spectate" buttons inside the bracket columns if the tournament is completed, ensuring the tree is shown in read-only mode after completion.
+
+---
+
+## 🏆 22. Completed Tournament Homepage Feed and Auto-Opening Bracket
+
+We resolved the issue where completed tournaments vanished from the dashboard stream and did not update the homepage feed with the winners' usernames.
+
+### Changes Made:
+- **Backend Active/Completed Listing Endpoint** ([services.py](file:///c:/Users/USER/pureplay/pureplay-main/backend/apps/tournaments/services.py)):
+  - Modified the `list_active_tournaments` method in `TournamentService` to return `completed` tournaments as well as `registering` and `in_progress` ones. This ensures the database returns the completed tournament to the frontend, preventing the frontend store from falling back to empty/mock data when no tournaments are actively registering.
+- **Homepage Featured Tournament Selection** ([page.tsx](file:///c:/Users/USER/pureplay/frontend/src/app/(main)/dashboard/page.tsx)):
+  - Updated the featured tournament query logic inside `HomeContent` to fall back to the most recent `completed` tournament if no active/live/registering tournaments exist.
+- **Premium Gold Completed Hero Card** ([TournamentHero.tsx](file:///c:/Users/USER/pureplay/frontend/src/components/tournament/TournamentHero.tsx)):
+  - Redesigned `TournamentHero` to support completed layouts.
+  - Renders a gold-themed **Tournament Champion** panel displaying the 1st place winner's username (e.g. `clas5`) and a bouncy trophy icon.
+  - Displays a **Final Standings** panel showing ranks 1st to 5th with medals alongside their real usernames.
+  - Updated the button to display `"View Bracket Tree"` with gold styling.
+- **Switch & Auto-Open Modal Navigation** ([page.tsx](file:///c:/Users/USER/pureplay/frontend/src/app/(main)/dashboard/page.tsx)):
+  - Configured `onTournamentClick` to update the browser search parameters (`?tab=tournament&openBracket=${tournamentId}`). This automatically redirects the user to the tournament tab and opens the bracket tree overlay for that specific tournament.
+
+---
+
+## 🔒 23. Completed Game Room Redirection Hardening
+
+We resolved the issue where users could access or remain stuck inside completed tournament game rooms.
+
+### Changes Made:
+- **Instant Game Over Broadcast for Stale/Completed Matches** ([consumers.py](file:///c:/Users/USER/pureplay/pureplay-main/backend/apps/matches/consumers.py)):
+  - Refactored `send_match_start` in the WebSocket consumer. If a connection is established to a match that has already been marked as `completed` in the database, the server will now initialize the client's board coordinates and then immediately send a `GAME_OVER` event with the winner and results.
+  - Prevents the server from scheduling turn timeouts or triggering computer agent moves for completed games.
+- **Frontend Game Exit Auto-Redirect** ([page.tsx](file:///c:/Users/USER/pureplay/frontend/src/app/(main)/game/page.tsx)):
+  - Verified that when the game store receives the `GAME_OVER` socket event, the client immediately transitions to a `finished` status. This triggers the auto-redirect `useEffect` hook, which safely transitions the player out of the game room back to the bracket screen after `3` seconds.
 
 ### Backend Tasks
 - [x] **Database Migration**: Add a `phone_number` field to the custom User model.
@@ -134,17 +193,18 @@ Ranking system calculations are implemented, but endpoints are still pending.
 
 ## 🎮 6. Game Catalog & Multi-Engine Scaling
 
-Tic Tac Toe and Chess are fully playable. Other games are in planning.
+Tic Tac Toe, Chess, and Whot! Cards are fully playable multiplayer games. Other games are in planning.
 
 ### Backend Tasks
 - [x] **State Machine Abstraction**: Generic `AbstractGameEngine` interface supporting various formats.
-- [x] **Add Game Engines**: WebSocket consumer + move validator for Tic Tac Toe and Chess.
+- [x] **Add Game Engines**: WebSocket consumer + move validator for Tic Tac Toe, Chess, and Whot! Cards.
 - [ ] **Live Activity Feed**: Spectator lobby feed.
 
 ### Frontend Tasks
-- [x] **Game Prototypes**: Tic Tac Toe board and ChessBoard fully implemented.
+- [x] **Game Prototypes**: Tic Tac Toe, Chess, and Whot! boards fully implemented.
+- [x] **Whot! Cards**: Multiplayer Whot! game board connected to live sockets, queue matchmaker, and auto-play bot heuristics.
 - [ ] **Game Prototypes (Other)**: React boards/controllers for Basketball, Snooker, Reversi, etc.
-- [x] **Visual Customization**: Styled assets and turn indicators for Tic Tac Toe and Chess.
+- [x] **Visual Customization**: Styled assets and turn indicators for Tic Tac Toe, Chess, and Whot! Cards.
 
 ---
 
@@ -186,6 +246,44 @@ To transition Tic Tac Toe from a single-round game to a premium "best of three" 
   - Bind `player1_username` and `player2_username` from the websocket connection to the player cards on the game page instead of showing generic "Player 1" and "Player 2" or "YOU" / "OPPONENT".
 - [x] **Post-Match Result Headers**:
   - Display the specific cash amount won (e.g. `Won NGN 950`) for the winner, and display `You Lose` for the loser instead of the generic `Match Complete`.
+
+---
+
+## 🛠️ 10. Admin Control Panel & Live Bracket Spectating
+
+To implement a complete administration suite for platform staff to monitor operations, manage matches/tournaments, and spectate live brackets.
+
+### 🧑‍💻 Backend Tasks
+- [x] **Staff Authentication Gate**:
+  - Define `IsStaffUser` permission class to secure admin routes.
+  - Return `is_staff` flag inside user profile responses.
+- [x] **Dashboard Metrics Endpoint**:
+  - Build statistics views returning user metrics, match metrics, and financial summaries.
+  - Calculate platform cuts and separate revenue splits by source (Tournament fee commission vs. Quick Match rakes).
+- [x] **Daily Analytics Endpoints**:
+  - Expose daily timeseries for signups, matches, deposits, and stakes for interactive graphs.
+- [x] **Operations Management endpoints**:
+  - `/api/admin/users/` (paginated, searchable user database).
+  - `/api/admin/transactions/` (audit ledger of deposits, stakes, payouts).
+  - `/api/admin/tournaments/` (tournament listings with creation and manual start/cancel triggers).
+
+### 🎨 Frontend Tasks
+- [x] **Protected Administration Shell**:
+  - Build layout with navigation sidebar and header.
+  - Add navigation routes and guards for staff-only access.
+  - Conditionally display the "Admin" entry point in the dashboard navigation for elevated staff users.
+- [x] **Overview Analytics Dashboard**:
+  - Render dynamic summary cards with trend arrows.
+  - Plot daily performance charts using native responsive SVG lines and bars (zero external dependencies).
+- [x] **Operations Tables**:
+  - Build reusable paginated lists with remote search and state filters for Users, Matches, and Tournaments.
+  - Redesign the Transactions log into tabbed categories (All, Deposits, Withdrawals, Stakes, Winnings, Refunds) for separated section reviews.
+- [x] **Live Bracket Spectating Modal**:
+  - Integrate `react-brackets` tree visualization to map database-driven rounds dynamically.
+  - Implement 3-second automatic polling to track progression live.
+  - Add "Spectate" buttons opening the active WebSocket game room in a read-only viewer mode for any match.
+  - Hardened live updates: replaced fullscreen "Loading Bracket..." overlays with a localized loading spinner container inside the modal itself, preventing jarring screen flashes as matches advance.
+  - Concluded match seeds: dimmed only the losing player rows internally (to 45% opacity) and styled scores based on outcome (green for winners, grey for losers) alongside clear indicators (Crown badge for winners, red Cross for losers) instead of dimming the entire bracket seed container.
 
 ---
 
