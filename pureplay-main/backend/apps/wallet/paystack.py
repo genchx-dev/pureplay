@@ -19,7 +19,7 @@ class PaystackService:
             'callback_url': settings.PAYSTACK_CALLBACK_URL,
             'metadata': metadata or {},
         }
-        response = requests.post(f'{cls.BASE_URL}/transaction/initialize', json=data, headers=headers)
+        response = requests.post(f'{cls.BASE_URL}/transaction/initialize', json=data, headers=headers, timeout=10)
         response.raise_for_status()
         return response.json()
 
@@ -27,7 +27,7 @@ class PaystackService:
     def verify_transaction(cls, reference):
         """Verify transaction status."""
         headers = {'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'}
-        response = requests.get(f'{cls.BASE_URL}/transaction/verify/{reference}', headers=headers)
+        response = requests.get(f'{cls.BASE_URL}/transaction/verify/{reference}', headers=headers, timeout=10)
         response.raise_for_status()
         return response.json()
 
@@ -45,7 +45,7 @@ class PaystackService:
             "bank_code": bank_code,
             "currency": "NGN"
         }
-        response = requests.post(f'{cls.BASE_URL}/transferrecipient', json=data, headers=headers)
+        response = requests.post(f'{cls.BASE_URL}/transferrecipient', json=data, headers=headers, timeout=10)
         if not response.ok:
             try:
                 err_data = response.json()
@@ -69,7 +69,7 @@ class PaystackService:
             "recipient": recipient_code,
             "reference": reference
         }
-        response = requests.post(f'{cls.BASE_URL}/transfer', json=data, headers=headers)
+        response = requests.post(f'{cls.BASE_URL}/transfer', json=data, headers=headers, timeout=10)
         if not response.ok:
             try:
                 err_data = response.json()

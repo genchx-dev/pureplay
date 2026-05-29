@@ -4,8 +4,9 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
 from rest_framework import permissions, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
+from core.security.rate_limit import MatchmakingRateThrottle
 
 from apps.matches.services import create_match, join_match
 from .queue import accept_open_match, cancel_queue_entry, ensure_queue_entry, list_open_matches
@@ -28,6 +29,7 @@ def parse_stake(value):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def join_queue_view(request):
     game_type = request.data.get('gameType', 'tictactoe')
     mode = request.data.get('mode', 'quick_match')
@@ -47,6 +49,7 @@ def join_queue_view(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def cancel_queue_view(request):
     cancel_queue_entry(request.user.id)
     return Response({'status': 'cancelled'})
@@ -86,6 +89,7 @@ def open_matches_view(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def accept_open_match_view(request):
     queue_id = request.data.get('queueId')
     if not queue_id:
@@ -120,6 +124,7 @@ def available_players_view(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def challenge_player_view(request):
     opponent_id = request.data.get('opponentId')
     game_type = request.data.get('gameType', 'tictactoe')
@@ -158,6 +163,7 @@ def challenge_player_view(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def send_challenge(request):
     """Send a pending challenge (invite) to another user."""
     to_user_id = request.data.get('to_user_id')
@@ -192,6 +198,7 @@ def send_challenge(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def accept_challenge(request, challenge_id):
     """Accept a pending challenge, locks stake, creates match."""
     try:
@@ -209,6 +216,7 @@ def accept_challenge(request, challenge_id):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([MatchmakingRateThrottle])
 def decline_challenge(request, challenge_id):
     """Decline a pending challenge."""
     try:

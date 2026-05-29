@@ -31,10 +31,26 @@ export const useChessDemo = () => {
   const [winner, setWinner] = useState<'X' | 'O' | 'draw' | null>(null);
   const [timeLeft, setTimeLeft] = useState(20);
   const [status, setStatus] = useState<'playing' | 'finished' | 'draw'>('playing');
+  const [legalMoves, setLegalMoves] = useState<string[]>([]);
 
-  // Load initial board state
+  const checkGameStatus = () => {
+    const chess = chessRef.current;
+    if (chess.isCheckmate()) {
+      // If active turn was White (X) when checkmated -> Black (O) won
+      setWinner(chess.turn() === 'w' ? 'O' : 'X');
+      setStatus('finished');
+    } else if (chess.isGameOver()) {
+      setWinner('draw');
+      setStatus('draw');
+    }
+  };
+
+  // Load initial board state and legal moves
   useEffect(() => {
     setBoard(serializeChessBoard(chessRef.current));
+    setLegalMoves(chessRef.current.moves({ verbose: true }).map(m => {
+      return m.from + m.to + (m.promotion || '');
+    }));
   }, []);
 
   // Timer logic
@@ -77,6 +93,9 @@ export const useChessDemo = () => {
       });
 
       setBoard(serializeChessBoard(chess));
+      setLegalMoves(chess.moves({ verbose: true }).map(m => {
+        return m.from + m.to + (m.promotion || '');
+      }));
       setTimeLeft(20);
       
       if (chess.isGameOver()) {
@@ -88,18 +107,6 @@ export const useChessDemo = () => {
 
     return () => clearTimeout(botTimer);
   }, [currentPlayer, status]);
-
-  const checkGameStatus = () => {
-    const chess = chessRef.current;
-    if (chess.isCheckmate()) {
-      // If active turn was White (X) when checkmated -> Black (O) won
-      setWinner(chess.turn() === 'w' ? 'O' : 'X');
-      setStatus('finished');
-    } else if (chess.isGameOver()) {
-      setWinner('draw');
-      setStatus('draw');
-    }
-  };
 
   const sendMove = (uciMove: string | number) => {
     if (status !== 'playing' || currentPlayer !== 'X') return;
@@ -121,6 +128,9 @@ export const useChessDemo = () => {
 
       if (moveResult) {
         setBoard(serializeChessBoard(chess));
+        setLegalMoves(chess.moves({ verbose: true }).map(m => {
+          return m.from + m.to + (m.promotion || '');
+        }));
         setTimeLeft(20);
 
         if (chess.isGameOver()) {
@@ -137,16 +147,14 @@ export const useChessDemo = () => {
   const reconnect = () => {
     chessRef.current = new Chess();
     setBoard(serializeChessBoard(chessRef.current));
+    setLegalMoves(chessRef.current.moves({ verbose: true }).map(m => {
+      return m.from + m.to + (m.promotion || '');
+    }));
     setCurrentPlayer('X');
     setWinner(null);
     setTimeLeft(20);
     setStatus('playing');
   };
-
-  // Map moves back to UCI strings list (e.g. ["e2e4"]) for ChessBoard highlights
-  const uciLegalMoves = chessRef.current.moves({ verbose: true }).map(m => {
-    return m.from + m.to + (m.promotion || '');
-  });
 
   return {
     board,
@@ -160,7 +168,7 @@ export const useChessDemo = () => {
     series: null,
     sendMove,
     reconnect,
-    legalMoves: uciLegalMoves,
+    legalMoves: legalMoves,
     gameType: 'chess' as const,
     boardTheme: 'lichess',
     customStyles: {

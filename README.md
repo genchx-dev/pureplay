@@ -88,7 +88,7 @@ npm.cmd run build
 npm.cmd run lint
 ```
 
-Current note: backend tests run successfully but there are currently `0` tests.
+Current note: backend tests run successfully with 17 active tests in the test suite.
 
 ## Implemented MVP Flows
 
@@ -111,12 +111,12 @@ Current note: backend tests run successfully but there are currently `0` tests.
 
 ## Known Limits
 
-- Wallet money movement is functional with real database-backed staking, deposits, and withdrawals.
+- Wallet money movement is functional with real database-backed staking, deposits, and withdrawals, hardened against concurrency race conditions via select_for_update database row-locking.
 - Tournament join/payment and bracket tree visualization are UI-ready; backend endpoints are mocked locally until live tournament servers are up.
 - Challenge phone notifications are planned backend work (phone-number persistence is now supported).
 - Matchmaking uses local cache state, so it is suitable for local MVP testing, not production scale.
 - The challenge flow is UI-ready for acceptance modals; backend invites are currently mocked locally until endpoints are implemented.
-- Production settings need hardening before deployment.
+- Production settings need hardening before deployment (rate limiting, package dependency security upgrades, and row-level locking have been configured).
 
 ## Partner Docs
 
@@ -141,7 +141,7 @@ Current frontend status:
 - Coming-soon game assets are visible from the shared game catalog.
 - Leaderboard and player progression (XP/Tiers/Match History) are fully dynamic with local storage state persistence.
 - Tournament join/payment and bracket tree visualization are UI-ready with local mock fallbacks.
-- Wallet deposit and withdrawal actions remain disabled until the backend ledger is real.
+- Wallet deposit and withdrawal actions are fully functional and integrated with the backend ledger services.
 
 ## Documentation Maintenance
 

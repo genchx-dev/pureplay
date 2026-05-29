@@ -12,8 +12,8 @@ This file tracks where the product currently stands across frontend, backend, do
 | Frontend shell | Working | 92% | React/Vite app has dashboard, auth, lobby, settings, and expanded Admin control panel with custom charts. |
 | Backend shell | Working | 92% | Django/DRF/Daphne app runs with auth, matchmaking, wallet ledger, rankings, Whot! card engines, and expanded admin endpoints. |
 | API contract | Working draft | 90% | Main frontend expectations, Whot! card, and admin API schemas are documented/tested. |
-| Tests | Working | 50% | Full suite of admin API tests, engine unit tests, and local simulation tests. |
-| Production readiness | Not ready | 30% | Local MVP only. Redis queue, Postgres migrations, and Sentry tracking remain. |
+| Tests | Working | 60% | All 17 backend unit tests and endpoint checks pass cleanly. |
+| Production readiness | Working draft | 45% | Rate limiting, DB locking, and dependency security upgrades applied. Redis queue, Postgres migrations, and Sentry tracking remain. |
 
 ## Frontend Progress
 

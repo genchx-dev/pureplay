@@ -305,6 +305,7 @@ To implement a complete administration suite for platform staff to monitor opera
 ### Backend Tasks
 - [ ] **Matchmaking Queue**: Replace in-memory queue with **Redis** for multi-server support.
 - [ ] **Database**: Migrate from SQLite → **PostgreSQL**.
-- [ ] **Security**: Hardened CORS headers, HTTPS-only cookies, environment secrets via `.env` / secret manager.
-- [ ] **Rate Limiting**: Add throttling on matchmaking, challenge, and search endpoints.
+- [x] **Security**: Hardened CORS headers, HTTPS-only cookies, environment secrets via `.env` / secret manager, and row-level database locking (`select_for_update`) to prevent double-deposit/settlement balance race conditions.
+- [x] **Rate Limiting**: Added throttling on register, login, matchmaking queues, and challenge endpoints.
 - [ ] **Logging & Monitoring**: Structured logging (JSON), Sentry integration for error tracking.
+- [x] **Static Quality Analysis**: Upgraded frontend ESLint and solved all TypeScript/React ref warning/error patterns. Bumped requests/dotenv packages to patch CVE-2026-25645 / CVE-2026-28684 vulnerabilities.

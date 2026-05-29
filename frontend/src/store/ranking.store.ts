@@ -174,6 +174,7 @@ export const useRankingStore = create<RankingState>((set, get) => ({
       }
       set({ matchHistory: data, loading: false, error: null });
     } catch (err) {
+      console.warn('Match history API failed, falling back to localStorage', err);
       // Graceful fallback to localStorage
       const stored = localStorage.getItem(`matches_${username}`);
       const history = stored ? JSON.parse(stored) : DEFAULT_MATCH_HISTORY;
@@ -186,10 +187,7 @@ export const useRankingStore = create<RankingState>((set, get) => ({
 
   addMatchResult: (username, game, opponent, result, stake) => {
     // 1. Calculate XP reward
-    let gainedXp = 0;
-    if (result === 'WIN') gainedXp = 50;
-    else if (result === 'DRAW') gainedXp = 25;
-    else gainedXp = 15;
+    const gainedXp = result === 'WIN' ? 50 : result === 'DRAW' ? 25 : 15;
 
     // 2. Fetch matches list
     const stored = localStorage.getItem(`matches_${username}`);

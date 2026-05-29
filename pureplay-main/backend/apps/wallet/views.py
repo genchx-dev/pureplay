@@ -215,16 +215,29 @@ def deposit_verify(request):
         return Response({'error': 'Reference required'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        tx = PaymentTransaction.objects.get(reference=reference, user=request.user)
+        # Check current status first to return early if already processed
+        tx_check = PaymentTransaction.objects.get(reference=reference, user=request.user)
+        if tx_check.status == 'success':
+            return Response({'status': tx_check.status, 'amount': float(tx_check.amount)})
+            
+        # Verify transaction with Paystack outside DB lock to prevent connection exhaustion
         res = PaystackService.verify_transaction(reference)
-        tx.paystack_response = res
-        if res['data']['status'] == 'success':
-            tx.status = 'success'
-            # Credit wallet
-            WalletService.deposit(request.user, tx.amount, f"Paystack deposit {reference}")
-        else:
-            tx.status = 'failed'
-        tx.save()
-        return Response({'status': tx.status, 'amount': float(tx.amount)})
+        
+        # Use database transaction with row-level locking to prevent concurrent double credit
+        with transaction.atomic():
+            tx = PaymentTransaction.objects.select_for_update().get(reference=reference, user=request.user)
+            if tx.status == 'success':
+                return Response({'status': tx.status, 'amount': float(tx.amount)})
+                
+            tx.paystack_response = res
+            if res.get('data', {}).get('status') == 'success':
+                tx.status = 'success'
+                tx.save()
+                WalletService.deposit(request.user, tx.amount, f"Paystack deposit {reference}")
+            else:
+                tx.status = 'failed'
+                tx.save()
+                
+            return Response({'status': tx.status, 'amount': float(tx.amount)})
     except PaymentTransaction.DoesNotExist:
         return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -12,9 +12,17 @@ class WalletService:
     # =========================
 
     @staticmethod
+    def get_wallet_locked(user):
+        """Retrieve or create user's wallet with row-level database lock."""
+        wallet, created = Wallet.objects.get_or_create(user=user)
+        if not created:
+            wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+        return wallet
+
+    @staticmethod
     @transaction.atomic
     def deposit(user, amount, description="Deposit"):
-        wallet, _ = Wallet.objects.get_or_create(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         wallet.balance += amount_decimal
@@ -31,7 +39,7 @@ class WalletService:
     @staticmethod
     @transaction.atomic
     def withdraw(user, amount, description="Withdrawal"):
-        wallet = Wallet.objects.select_for_update().get(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         if wallet.balance < amount_decimal:
@@ -55,7 +63,7 @@ class WalletService:
     @staticmethod
     @transaction.atomic
     def lock_stake(user, amount, match_id):
-        wallet = Wallet.objects.select_for_update().get(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         if wallet.balance < amount_decimal:
@@ -78,7 +86,7 @@ class WalletService:
     @transaction.atomic
     def lock_funds(user, amount):
         """Lock funds using model-level logic."""
-        wallet, _ = Wallet.objects.select_for_update().get_or_create(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         try:
@@ -98,7 +106,7 @@ class WalletService:
     @transaction.atomic
     def consume_entry_fee(user, amount, tournament_id):
         """Consume and permanently deduct the locked entry fee when a tournament starts."""
-        wallet = WalletService.get_wallet(user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         wallet.deduct_locked_funds(amount_decimal)
@@ -119,7 +127,7 @@ class WalletService:
     @staticmethod
     @transaction.atomic
     def payout_win(user, amount, match_id):
-        wallet, _ = Wallet.objects.get_or_create(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         wallet.balance += amount_decimal
@@ -137,7 +145,7 @@ class WalletService:
     @staticmethod
     @transaction.atomic
     def refund_stake(user, amount, match_id, reason="Match Cancelled"):
-        wallet, _ = Wallet.objects.get_or_create(user=user)
+        wallet = WalletService.get_wallet_locked(user)
         amount_decimal = Decimal(str(amount))
 
         wallet.balance += amount_decimal
@@ -154,7 +162,7 @@ class WalletService:
         )
 
     # =========================
-    # MATCH SETTLEMENT SYSTEM (FIXED)
+    # MATCH SETTLEMENT SYSTEM (FIXED & HARDENED)
     # =========================
 
     @staticmethod
@@ -164,14 +172,20 @@ class WalletService:
         Settle a staked match correctly:
         - Winner: unlock their stake, then credit net winnings (loser's stake minus fee)
         - Loser: locked stake is permanently deducted
+        - Locks resources in consistent order by User ID to prevent database deadlocks.
         """
         stake = Decimal(str(stake_amount))
         total_pool = stake * 2
         fee = total_pool * (Decimal(platform_fee_percent) / 100)
         winner_payout = total_pool - fee  # total amount added to winner's balance
 
-        winner_wallet = WalletService.get_wallet(winner)
-        loser_wallet = WalletService.get_wallet(loser)
+        # Determine safe lock order (acquire lower ID first)
+        if winner.id < loser.id:
+            winner_wallet = WalletService.get_wallet_locked(winner)
+            loser_wallet = WalletService.get_wallet_locked(loser)
+        else:
+            loser_wallet = WalletService.get_wallet_locked(loser)
+            winner_wallet = WalletService.get_wallet_locked(winner)
 
         # Winner: unlock stake (move from locked to balance)
         winner_wallet.unlock_funds(stake)
@@ -207,11 +221,19 @@ class WalletService:
     @staticmethod
     @transaction.atomic
     def refund_match_stakes(player1, player2, stake_amount, match_id, reason="Match abandoned/draw"):
-        """Refund both players' locked stakes safely."""
+        """Refund both players' locked stakes safely with lock ordering to prevent deadlocks."""
         stake = Decimal(str(stake_amount))
 
-        for player in [player1, player2]:
-            wallet = WalletService.get_wallet(player)
+        # Consistent lock acquisition order (lower ID first)
+        players = [player1, player2]
+        players_sorted = sorted(players, key=lambda p: p.id)
+        
+        wallets = {}
+        for player in players_sorted:
+            wallets[player.id] = WalletService.get_wallet_locked(player)
+
+        for player in players:
+            wallet = wallets[player.id]
             wallet.unlock_funds(stake)  # moves locked -> balance
 
             Transaction.objects.create(
@@ -229,6 +251,6 @@ class WalletService:
 
     @staticmethod
     def get_wallet(user):
-        """Retrieve or create wallet."""
+        """Retrieve or create wallet (without row lock)."""
         wallet, _ = Wallet.objects.get_or_create(user=user)
         return wallet

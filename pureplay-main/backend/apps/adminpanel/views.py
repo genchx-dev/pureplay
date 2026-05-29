@@ -553,7 +553,9 @@ def admin_matches(request):
     results = []
     for m in matches:
         game_state = m.game_state or {}
-        stake_val = game_state.get('stake', 0)
+        stake_val = game_state.get('stake')
+        if stake_val is None:
+            stake_val = game_state.get('matchStake', 0)
         results.append({
             'id': str(m.id),
             'player1': m.player1.username if m.player1 else None,
